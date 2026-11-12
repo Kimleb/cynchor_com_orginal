@@ -2,6 +2,19 @@ import { DatabaseSync } from 'node:sqlite';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { createClient } from "@libsql/client";
+
+
+export const db = createClient({
+  url: process.env.TURSO_DATABASE_URL ?? "file:./local.sqlite",
+  authToken: process.env.TURSO_AUTH_TOKEN,
+});
+
+const result = await db.execute({
+  sql: "SELECT * FROM operators WHERE email = ?",
+  args: [email],
+});
+const operator = result.rows[0];
 
 // Path to SQLite db file
 const dbDir = path.join(process.cwd(), 'data');
