@@ -10,12 +10,6 @@ export const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-const result = await db.execute({
-  sql: "SELECT * FROM operators WHERE email = ?",
-  args: [email],
-});
-const operator = result.rows[0];
-
 // Path to SQLite db file
 const dbDir = path.join(process.cwd(), 'data');
 if (!fs.existsSync(dbDir)) {
