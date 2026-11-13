@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { ChevronDown, ExternalLink } from 'lucide-react';
+import { ChevronDown, ExternalLink, Linkedin } from 'lucide-react';
 import { TeamMember } from '@/content/team';
 
 interface TeamCardProps {
@@ -139,6 +139,21 @@ export function TeamCard({ member, photoSrc }: TeamCardProps) {
             }`}
           />
         </button>
+
+        {member.linkedin && (
+          <div className="pt-3 border-t border-border mt-2">
+            <a
+              href={member.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${member.name} on LinkedIn`}
+              className="text-xs font-mono text-teal hover:underline inline-flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-teal outline-none rounded"
+            >
+              <Linkedin className="w-4 h-4" aria-hidden="true" />
+              <span>LinkedIn</span>
+            </a>
+          </div>
+        )}
 
         {/* Optional Links Row (only if non-empty) */}
         {member.links && member.links.length > 0 && (
