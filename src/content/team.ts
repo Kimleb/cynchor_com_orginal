@@ -9,6 +9,7 @@ export interface TeamMember {
   focusAreas: string[];
   shortBio: string;
   fullBio: string[];
+  linkedin?: string;
   links?: { label: string; href: string }[];
 }
 
@@ -29,6 +30,7 @@ export const TEAM_CONTENT: TeamContent = {
       name: 'Elijah Chimera Mangale',
       role: 'Co-founder',
       photoSlug: 'elijah-chimera-mangale',
+      linkedin: 'https://www.linkedin.com/in/elijah-chimera-938718261',
       tagline: "Architecting what lasts, breaking what doesn't.",
       focusAreas: ['Cloud security', 'DevSecOps', 'Penetration testing'],
       shortBio:
@@ -45,6 +47,7 @@ export const TEAM_CONTENT: TeamContent = {
       name: 'Caleb Kimutai',
       role: 'Co-founder',
       photoSlug: 'caleb-kimutai',
+      linkedin: 'https://www.linkedin.com/in/caleb-kimutai-chemobo/',
       tagline: 'Building People.',
       focusAreas: ['Digital security', 'Responsible AI', 'Leadership'],
       shortBio:
@@ -60,6 +63,7 @@ export const TEAM_CONTENT: TeamContent = {
       name: 'Munyu Noel Muriithi',
       role: 'Co-founder',
       photoSlug: 'munyu-noel-muriithi',
+      linkedin: 'https://www.linkedin.com/in/noelmunyu/',
       tagline: 'A hacker at heart, a defender by discipline.',
       focusAreas: ['Offensive security', 'Defensive security', 'Purple team'],
       shortBio:

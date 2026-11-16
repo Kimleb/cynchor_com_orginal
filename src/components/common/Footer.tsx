@@ -2,13 +2,13 @@ import React from 'react';
 import Link from 'next/link';
 import { Logo } from '../brand/Logo';
 import { Badge } from './Badge';
-import { Lock } from 'lucide-react';
+import { Lock, Linkedin } from 'lucide-react';
 
 export function Footer() {
   return (
     <footer className="bg-surface border-t border-border mt-auto">
       <div className="container mx-auto px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-8 mb-10">
           {/* Brand info & Slogan Lockup */}
           <div className="md:col-span-2 space-y-4">
             <div className="space-y-2">
@@ -81,26 +81,6 @@ export function Footer() {
                   Portal Login
                 </Link>
               </li>
-              <li>
-                <Link href="/demo/profile" className="hover:text-teal transition-colors">
-                  Profile Making
-                </Link>
-              </li>
-              <li>
-                <Link href="/demo/dashboard" className="hover:text-teal transition-colors">
-                  Lab Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link href="/demo/team" className="hover:text-teal transition-colors">
-                  Team Formation
-                </Link>
-              </li>
-              <li>
-                <Link href="/demo/architecture" className="hover:text-teal transition-colors">
-                  System Architecture
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -127,6 +107,26 @@ export function Footer() {
                 <span className="text-[11px] text-muted/70 block font-mono">
                   100% Synthetic Range Data
                 </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Socials */}
+          <div className="space-y-3">
+            <h4 className="font-heading font-semibold text-xs uppercase tracking-widestlabel text-text">
+              Socials
+            </h4>
+            <ul className="space-y-2 text-xs text-muted">
+              <li>
+                <a
+                  href="https://linkedin.com/company/cynchor"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Cynchor on LinkedIn"
+                  className="inline-flex items-center gap-1.5 hover:text-teal transition-colors"
+                >
+                  <Linkedin className="w-4 h-4" aria-hidden="true" /> LinkedIn
+                </a>
               </li>
             </ul>
           </div>
