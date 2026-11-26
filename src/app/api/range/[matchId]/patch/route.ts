@@ -24,7 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { matchId: st
     if (!access.matchActive || range === undefined || range.status !== 'RUNNING' || range.container_id === null) {
       return NextResponse.json({ success: false, error: 'The match target is not running.' }, { status: 409 });
     }
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => null)) ?? {};
     const file = (PATCHABLE_FILES as readonly string[]).includes(body.file) ? (body.file as PatchableFile) : null;
     const content = typeof body.content === 'string' ? body.content : '';
     if (file === null) {

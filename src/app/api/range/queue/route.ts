@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (rl.allowed === false) {
       return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter || 60) } });
     }
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => null)) ?? {};
     const teamId = typeof body.teamId === 'string' ? body.teamId.slice(0, 100) : '';
     if (teamId === '') {
       return NextResponse.json({ success: false, error: 'Missing team ID' }, { status: 400 });

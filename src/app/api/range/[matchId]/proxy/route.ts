@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: { matchId: st
     if (!access.matchActive || range === undefined || range.status !== 'RUNNING' || range.container_id === null) {
       return NextResponse.json({ success: false, error: 'The match target is not running.' }, { status: 409 });
     }
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => null)) ?? {};
     const method = body.method === 'POST' ? 'POST' : body.method === 'GET' || body.method === undefined ? 'GET' : null;
     const path = typeof body.path === 'string' ? body.path : '';
     // Origin-form paths only: no scheme/host, no whitespace or control characters (blocks request smuggling and SSRF).

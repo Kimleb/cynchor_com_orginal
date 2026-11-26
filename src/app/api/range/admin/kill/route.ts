@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (!user || !user.is_operator) {
       return NextResponse.json({ success: false, error: 'Forbidden: Operator privileges required' }, { status: 403 });
     }
-    const body = await req.json().catch(() => ({}));
+    const body = (await req.json().catch(() => null)) ?? {};
     const matchId = typeof body.matchId === 'string' ? body.matchId.slice(0, 100) : '';
     if (matchId === '') {
       return NextResponse.json({ success: false, error: 'matchId is required.' }, { status: 400 });
