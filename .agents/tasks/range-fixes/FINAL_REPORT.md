@@ -41,3 +41,15 @@ See `.agents/tasks/range-fixes/plan.md` (Decisions) and `.agents/tasks/fintech-r
 - `await req.json()` without catch returns 500 instead of 400 in `auth/profile`, `admin`, `teams` routes (pre-existing, non-range).
 - Public routes login, access-request, disclaimer stay unauthenticated by design.
 - The reaper writes an audit row when it ends a match; orphan Docker objects with no DB row are removed without an audit row (no match row to attach to).
+## Review outcomes
+Source: `.agents/tasks/range-fixes/verdict.json`, which contains only `{"verdict": "APPROVED"}`.
+| Review | Outcome |
+|---|---|
+| Code review | APPROVED. No findings recorded in verdict.json. |
+| Security review | No separate result recorded. The verdict file holds one APPROVED verdict with no per-review breakdown and no findings. |
+## Leftover re-check (docker)
+- `docker ps -a --filter label=cynchor.range`: 0 containers.
+- `docker network ls --filter label=cynchor.range`: 0 networks.
+- Unfiltered, `docker ps -a` shows only a stopped `buildx_buildkit_default` container (3 weeks old, unrelated) and `docker network ls` shows only the default `bridge`.
+## Leftover items
+Open items are the entries under "Deliberately left" above. The review added none.
