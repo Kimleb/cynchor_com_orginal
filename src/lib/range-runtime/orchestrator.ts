@@ -19,7 +19,9 @@ const LOG_POLL_MS = 5000;
 const TARGET_DIR = path.join(process.cwd(), 'range-target');
 
 type Live = { timeout: NodeJS.Timeout; logTimer: NodeJS.Timeout; cursor: string; containerId: string; networkId: string };
-const live = new Map<string, Live>();
+// Shared across route bundles (like the scorer state) so the reaper sees every live match.
+const lg = globalThis as unknown as { __rangeLive?: Map<string, Live> };
+const live: Map<string, Live> = (lg.__rangeLive ??= new Map());
 let imageReady: Promise<void> | null = null;
 
 function ensureImage(): Promise<void> {
@@ -175,4 +177,12 @@ export async function stopMatch(
   return destroy(row, reason, opts.userId, opts.details ?? `${reason.toLowerCase()}${who}`);
 }
 
+// True while this process owns the timers for the match row (row id, not match session id).
+export function isLive(rowId: string): boolean {
+  return live.has(rowId);
+}
+// Reaper entry point: destroys the container and network of a row this process no longer drives and ends the row once.
+export function reapMatch(row: RangeMatchRow, reason: 'TIMEOUT' | 'KILLED'): Promise<boolean> {
+  return destroy(row, reason, undefined, reason === 'TIMEOUT' ? 'reaped: timeout_at passed' : 'reaped: server restarted');
+}
 export { listByLabel } from './dockerClient';

@@ -2,6 +2,7 @@
 // the vault balance is read off the target and exploit status comes from the shared exploit checks.
 import { getDb, getActiveRangeMatch, updateRangeMatch, getRangeMatch } from '@/lib/db';
 import { stopMatch } from './orchestrator';
+import { ensureReaperRunning } from './reaper';
 import { containerTransport } from './targetHttp';
 import { CHECKS, EXPLOIT_IDS, EXPLOIT_PATHS, checkHealth, readVaultBalance, type ExploitId, type Transport } from './exploitChecks';
 import { endRangeSession, recordRangeEvent, type EndReason, type StopFn } from './lobby';
@@ -120,6 +121,7 @@ export async function scoreAllOnce(deps: TickDeps = {}): Promise<void> {
 }
 // Idempotent: every range route calls this, so the scorer runs whenever the range is in use.
 export function ensureScorerRunning(): void {
+  ensureReaperRunning();
   if (scorer.timer !== undefined) return;
   scorer.timer = setInterval(() => void scoreAllOnce(), SCORE_INTERVAL_MS);
   scorer.timer.unref();
