@@ -1,5 +1,6 @@
 // Read-only report and leaderboard queries over ended range matches. Database only; usernames, never emails.
 import { getDb, getRangeMatch } from '@/lib/db';
+import { EXPLOIT_IDS, type ExploitId } from '@/lib/range-runtime/exploitChecks';
 
 export const VAULT_START_CENTS = 50_000_000;
 
@@ -83,19 +84,32 @@ export function buildReport(matchId: string): MatchReport | null {
   };
 }
 
+export type LeaderboardFilter = { matchId?: string; exploit?: ExploitId };
 export type Leaderboard = {
   matchesPlayed: number;
   teams: Array<{ team: string; side: string; played: number; wins: number }>;
   players: Array<{ name: string; exploits: number; patches: number }>;
+  filters: { matches: Array<{ id: string; label: string }>; exploits: ExploitId[] };
 };
-
-export function buildLeaderboard(): Leaderboard {
+// Room = match session id, level = exploit id. A filtered board only counts matches (and landed exploits) that fit.
+export function buildLeaderboard(filter: LeaderboardFilter = {}): Leaderboard {
   const db = getDb();
-  const sessions = db.prepare(`
+  const all = db.prepare(`
     SELECT ms.id AS id, rt.name AS red_name, bt.name AS blue_name
     FROM match_sessions ms LEFT JOIN teams rt ON rt.id = ms.red_team_id LEFT JOIN teams bt ON bt.id = ms.blue_team_id
-    WHERE ms.mode = 'RANGE' AND ms.status <> 'ACTIVE'
+    WHERE ms.mode = 'RANGE' AND ms.status <> 'ACTIVE' ORDER BY ms.created_at DESC, ms.id ASC
   `).all() as Array<{ id: string; red_name: string | null; blue_name: string | null }>;
+  const exploitTag = filter.exploit === undefined ? null : `exploit=${filter.exploit} `;
+  const landedIn = new Set<string>();
+  if (exploitTag !== null) {
+    const landed = db.prepare("SELECT details FROM audit_logs WHERE action = 'RANGE_EXPLOIT_LANDED' AND instr(details, '[range:') = 1 AND instr(details, ?) > 0").all(exploitTag) as Array<{ details: string }>;
+    for (const r of landed) {
+      const id = /^\[range:([^:\]]+):/.exec(r.details)?.[1];
+      if (id !== undefined) landedIn.add(id);
+    }
+  }
+  const sessions = all.filter((s) => (filter.matchId === undefined || s.id === filter.matchId) && (exploitTag === null || landedIn.has(s.id)));
+  const keep = new Set(sessions.map((s) => s.id));
   const endRows = db.prepare("SELECT details FROM audit_logs WHERE action = 'RANGE_MATCH_ENDED' AND instr(details, '[range:') = 1").all() as Array<{ details: string }>;
   const winners = new Map<string, string>();
   for (const r of endRows) {
@@ -115,18 +129,26 @@ export function buildLeaderboard(): Leaderboard {
     bump(s.red_name, 'RED', w === 'RED');
     bump(s.blue_name, 'BLUE', w === 'BLUE');
   }
-  const players = db.prepare(`
-    SELECT u.name AS name,
-           SUM(CASE WHEN a.action = 'RANGE_EXPLOIT_LANDED' THEN 1 ELSE 0 END) AS exploits,
-           SUM(CASE WHEN a.action = 'RANGE_PATCH_APPLIED' THEN 1 ELSE 0 END) AS patches
+  const rows = db.prepare(`
+    SELECT u.name AS name, a.action AS action, a.details AS details
     FROM audit_logs a JOIN users u ON u.id = a.user_id
     WHERE a.action IN ('RANGE_EXPLOIT_LANDED', 'RANGE_PATCH_APPLIED') AND instr(a.details, '[range:') = 1
-      AND substr(a.details, 8, instr(substr(a.details, 8), ':') - 1) IN (SELECT id FROM match_sessions WHERE mode = 'RANGE' AND status <> 'ACTIVE')
-    GROUP BY u.id ORDER BY (exploits + patches) DESC, u.name ASC LIMIT 50
-  `).all() as Array<{ name: string; exploits: number; patches: number }>;
+  `).all() as Array<{ name: string; action: string; details: string }>;
+  const tally = new Map<string, { name: string; exploits: number; patches: number }>();
+  for (const r of rows) {
+    const id = /^\[range:([^:\]]+):/.exec(r.details)?.[1];
+    if (id === undefined || !keep.has(id)) continue;
+    if (exploitTag !== null && !(r.action === 'RANGE_EXPLOIT_LANDED' && r.details.includes(exploitTag))) continue;
+    const e = tally.get(r.name) ?? { name: r.name, exploits: 0, patches: 0 };
+    if (r.action === 'RANGE_EXPLOIT_LANDED') e.exploits += 1;
+    else e.patches += 1;
+    tally.set(r.name, e);
+  }
+  const players = Array.from(tally.values()).sort((a, b) => b.exploits + b.patches - (a.exploits + a.patches) || a.name.localeCompare(b.name)).slice(0, 50);
   return {
     matchesPlayed: sessions.length,
     teams: Array.from(teams.values()).sort((a, b) => b.wins - a.wins || a.team.localeCompare(b.team)),
     players,
+    filters: { matches: all.map((s) => ({ id: s.id, label: `${s.red_name ?? '?'} vs ${s.blue_name ?? '?'}` })), exploits: [...EXPLOIT_IDS] },
   };
 }
