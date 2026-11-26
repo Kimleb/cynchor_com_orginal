@@ -1,0 +1,34 @@
+seeded
+(node:125553) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:125611) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"success":true,"matched":true,"sessionId":"match_7d28d831-378b-4211-8a8c-3f490a9e2f37","side":"RED","status":"RUNNING"}
+--- docker resources for the match
+range-target-5d3f61f8-e12 Up 1 second ports=[]
+range-net-5d3f61f8-e12 bridge
+--- hardening (docker inspect)
+ReadonlyRootfs=true Privileged=false SecurityOpt=[no-new-privileges] Memory=268435456 PidsLimit=128 NanoCpus=500000000 Binds=[] PortBindings=map[] User=node
+Internal=true
+CapEff:	0000000000000000
+NoNewPrivs:	1
+1000
+touch: /opt/x: Read-only file system
+tmpfs-writable
+--- isolation probes (every one except the loopback control must FAIL)
+control loopback: reachable (expected)
+blocked: http://:80/
+blocked: http://10.0.2.2/
+blocked: http://1.1.1.1/
+blocked: http://example.com/
+--- kill switch: non-operator (red1) then unauthenticated
+{"success":false,"error":"Forbidden: Operator privileges required"} http=403
+container still running: 1
+--- kill switch: operator
+{"success":true} http=200
+elapsed=.246376045s
+containers left: 0 networks left: 0
+--- audit
+{"user_id":"e2e_red1","action":"RANGE_MATCH_STARTED","d":"range match rtm_5d3f61f8-e12f-435f-b25b-aae6111978bd for match match_7d28d831-378b-4211-8a"}
+{"user_id":"e2e_op","action":"RANGE_MATCH_KILLED","d":"range match rtm_5d3f61f8-e12f-435f-b25b-aae6111978bd: killed by operator e2e_op"}
+{"success":false,"error":"No running range match found."} http=404
