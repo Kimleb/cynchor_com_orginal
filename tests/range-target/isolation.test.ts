@@ -90,7 +90,7 @@ test('container cannot reach the host, the internet, or another match', { timeou
   if (gw) targets.add(gw);
   const { networkInterfaces } = await import('node:os');
   for (const list of Object.values(networkInterfaces())) for (const i of list ?? []) if (i.family === 'IPv4' && !i.internal) targets.add(i.address);
-  for (const t of targets) assert.equal(await reach(a.container_id!, `http://${t}:${hostPort}/`), false, `container must not reach host via ${t}`);
+  for (const t of Array.from(targets)) assert.equal(await reach(a.container_id!, `http://${t}:${hostPort}/`), false, `container must not reach host via ${t}`);
 
   // Internet: raw IP and DNS name.
   assert.equal(await reach(a.container_id!, 'http://1.1.1.1/'), false, 'no route to public IP');
