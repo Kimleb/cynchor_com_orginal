@@ -8,6 +8,11 @@ const { openDb, sha } = require('./db');
 function createApp(db) {
   const app = express();
   app.disable('x-powered-by');
+  // Access log to stdout (method, path, status only; no cookies or bodies). The orchestrator captures container stdout into audit_logs.
+  app.use((req, res, next) => {
+    res.on('finish', () => console.log(`ACCESS ${req.method} ${req.path.slice(0, 200)} ${res.statusCode}`));
+    next();
+  });
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
 

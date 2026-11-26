@@ -247,6 +247,18 @@ function initSchema(db: DatabaseSync) {
       ip_hash TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS range_target_matches (
+      id TEXT PRIMARY KEY,
+      match_session_id TEXT NOT NULL,
+      container_id TEXT,
+      network_id TEXT,
+      status TEXT NOT NULL DEFAULT 'STARTING',
+      vault_balance_cents INTEGER,
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      timeout_at TEXT NOT NULL
+    );
   `);
 
   // Try migrating audit_logs columns if table was created in older schema
@@ -402,4 +414,61 @@ export function endStaleMatches(maxHours: number = 4): number {
   const stale = db.prepare("SELECT id FROM match_sessions WHERE status = 'ACTIVE' AND created_at < ?").all(cutoff) as Array<{ id: string }>;
   for (const s of stale) endMatch(s.id);
   return stale.length;
+}
+export type RangeMatchStatus = 'STARTING' | 'RUNNING' | 'ENDED' | 'TIMEOUT' | 'KILLED' | 'FAILED';
+export interface RangeMatchRow {
+  id: string;
+  match_session_id: string;
+  container_id: string | null;
+  network_id: string | null;
+  status: RangeMatchStatus;
+  vault_balance_cents: number | null;
+  started_at: string;
+  ended_at: string | null;
+  timeout_at: string;
+}
+export function createRangeMatch(matchSessionId: string, timeoutAt: string, userId?: string): RangeMatchRow {
+  const id = `rtm_${crypto.randomUUID()}`;
+  const startedAt = new Date().toISOString();
+  getDb().prepare(`
+    INSERT INTO range_target_matches (id, match_session_id, status, started_at, timeout_at)
+    VALUES (?, ?, 'STARTING', ?, ?)
+  `).run(id, matchSessionId, startedAt, timeoutAt);
+  recordAuditLog({ userId, action: 'RANGE_MATCH_STARTED', details: `range match ${id} for match ${matchSessionId} starting (timeout_at ${timeoutAt})` });
+  return getRangeMatchById(id) as RangeMatchRow;
+}
+export function getRangeMatchById(id: string): RangeMatchRow | undefined {
+  return getDb().prepare('SELECT * FROM range_target_matches WHERE id = ?').get(id) as RangeMatchRow | undefined;
+}
+// Latest range match for a match session (a session can be restarted).
+export function getRangeMatch(matchSessionId: string): RangeMatchRow | undefined {
+  return getDb().prepare('SELECT * FROM range_target_matches WHERE match_session_id = ? ORDER BY started_at DESC, rowid DESC LIMIT 1').get(matchSessionId) as RangeMatchRow | undefined;
+}
+export function getActiveRangeMatch(matchSessionId: string): RangeMatchRow | undefined {
+  return getDb().prepare("SELECT * FROM range_target_matches WHERE match_session_id = ? AND status IN ('STARTING','RUNNING') ORDER BY rowid DESC LIMIT 1").get(matchSessionId) as RangeMatchRow | undefined;
+}
+export function updateRangeMatch(id: string, fields: Partial<Pick<RangeMatchRow, 'container_id' | 'network_id' | 'status' | 'vault_balance_cents'>>): void {
+  // Fixed statement (no interpolated SQL): fields left undefined keep their current value.
+  getDb().prepare(`
+    UPDATE range_target_matches SET
+      container_id = COALESCE(?, container_id),
+      network_id = COALESCE(?, network_id),
+      status = COALESCE(?, status),
+      vault_balance_cents = COALESCE(?, vault_balance_cents)
+    WHERE id = ?
+  `).run(fields.container_id ?? null, fields.network_id ?? null, fields.status ?? null, fields.vault_balance_cents ?? null, id);
+}
+const RANGE_END_ACTION = {
+  ENDED: 'RANGE_MATCH_ENDED',
+  TIMEOUT: 'RANGE_MATCH_TIMEOUT',
+  KILLED: 'RANGE_MATCH_KILLED',
+  FAILED: 'RANGE_MATCH_FAILED',
+} as const;
+// Moves an active range match to a terminal state exactly once. Returns false if it was already terminal.
+export function endRangeMatch(id: string, finalStatus: keyof typeof RANGE_END_ACTION, userId?: string, details?: string): boolean {
+  const res = getDb().prepare("UPDATE range_target_matches SET status = ?, ended_at = ? WHERE id = ? AND status IN ('STARTING','RUNNING')")
+    .run(finalStatus, new Date().toISOString(), id);
+  if (Number(res.changes) === 0) return false;
+  recordAuditLog({ userId, action: RANGE_END_ACTION[finalStatus], details: `range match ${id}${details ? `: ${details}` : ''}` });
+  return true;
 }
