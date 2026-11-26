@@ -43,6 +43,7 @@ export async function scoreTick(sessionId: string, deps: TickDeps = {}): Promise
   if (rtm === undefined || rtm.status !== 'RUNNING' || rtm.container_id === null) return { status: 'inactive' };
   if (Date.parse(rtm.timeout_at) <= Date.now()) {
     await endRangeSession(sessionId, 'timeout', stop);
+    scorer.state.delete(sessionId);
     return { status: 'ended', reason: 'timeout' };
   }
   const t = (deps.transport ?? containerTransport)(rtm.container_id);

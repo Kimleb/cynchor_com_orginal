@@ -167,6 +167,17 @@ test('scorer ends a match whose timeout has passed', async () => {
   assert.equal(getRangeMatch(sessionId)?.status, 'TIMEOUT');
   recordAuditLog({ action: 'RANGE_TEST_DONE' });
 });
+test('scorer drops its per-match state when the timeout branch ends the match', async () => {
+  const { sessionId } = pair();
+  const rtm = runRange(sessionId);
+  const deps = { transport: () => fakeTarget({ vault: 1000, patched: false, healthy: true }), stop: stopStub([]) };
+  assert.equal((await scoreTick(sessionId, deps)).status, 'scored');
+  const scorerState = (globalThis as unknown as { __rangeScorer: { state: Map<string, unknown> } }).__rangeScorer.state;
+  assert.equal(scorerState.has(sessionId), true);
+  getDb().prepare('UPDATE range_target_matches SET timeout_at = ? WHERE id = ?').run(new Date(Date.now() - 1000).toISOString(), rtm.id);
+  assert.deepEqual(await scoreTick(sessionId, deps), { status: 'ended', reason: 'timeout' });
+  assert.equal(scorerState.has(sessionId), false);
+});
 test('a vault read rising above the floor is clamped to the floor and audited once', async () => {
   const { sessionId } = pair();
   runRange(sessionId);
