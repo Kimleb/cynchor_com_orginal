@@ -3,11 +3,12 @@
 import { getDb, getActiveRangeMatch, updateRangeMatch, getRangeMatch } from '@/lib/db';
 import { stopMatch } from './orchestrator';
 import { ensureReaperRunning } from './reaper';
+import { VAULT_START_CENTS } from './reports';
 import { containerTransport } from './targetHttp';
 import { CHECKS, EXPLOIT_IDS, EXPLOIT_PATHS, checkHealth, readVaultBalance, type ExploitId, type Transport } from './exploitChecks';
 import { endRangeSession, recordRangeEvent, type EndReason, type StopFn } from './lobby';
 export const SCORE_INTERVAL_MS = 5000;
-type MatchScore = { checks: Map<ExploitId, boolean>; credited: Set<string>; cursor: number };
+type MatchScore = { checks: Map<ExploitId, boolean>; credited: Set<string>; cursor: number; resetLogged: boolean };
 type ScorerGlobal = { timer?: NodeJS.Timeout; state: Map<string, MatchScore>; busy: Set<string> };
 // Shared across route bundles so every route sees the same timer and state.
 const g = globalThis as unknown as { __rangeScorer?: ScorerGlobal };
@@ -47,10 +48,24 @@ export async function scoreTick(sessionId: string, deps: TickDeps = {}): Promise
   const t = (deps.transport ?? containerTransport)(rtm.container_id);
   // A target that is down or restarting is not "blocked": skip the tick.
   if (!(await checkHealth(t).catch(() => false))) return { status: 'unhealthy' };
-  const state = scorer.state.get(sessionId) ?? { checks: new Map<ExploitId, boolean>(), credited: new Set<string>(), cursor: 0 };
+  const state = scorer.state.get(sessionId) ?? { checks: new Map<ExploitId, boolean>(), credited: new Set<string>(), cursor: 0, resetLogged: false };
   scorer.state.set(sessionId, state);
-  const vault = await readVaultBalance(t).catch(() => null);
-  if (vault !== null) updateRangeMatch(rtm.id, { vault_balance_cents: vault });
+  let vault = await readVaultBalance(t).catch(() => null);
+  if (vault !== null) {
+    // Monotonic floor: the vault only drains. A read above the stored floor means Blue's patched code reset the
+    // target's data, so the floor (persisted in range_target_matches) wins and the reset is audited once.
+    const floor = rtm.vault_balance_cents ?? VAULT_START_CENTS;
+    if (vault > floor) {
+      if (!state.resetLogged) {
+        state.resetLogged = true;
+        recordRangeEvent({ matchId: sessionId, scope: 'ALL', action: 'RANGE_VAULT_RESET_DETECTED', details: `vault read ${vault} above floor ${floor}; floor kept` });
+      }
+      vault = floor;
+    } else {
+      state.resetLogged = false;
+      updateRangeMatch(rtm.id, { vault_balance_cents: vault });
+    }
+  }
   const rows = newProxyRows(sessionId, state.cursor);
   if (rows.length > 0) state.cursor = rows[rows.length - 1].rowid;
   if (vault === 0) {

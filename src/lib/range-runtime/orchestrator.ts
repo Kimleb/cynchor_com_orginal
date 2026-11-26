@@ -124,6 +124,7 @@ export async function startMatch(matchId: string, opts: { userId?: string; timeo
     containerId = await docker.createContainer(`range-target-${short}`, {
       Image: IMAGE_TAG,
       User: 'node',
+      Env: ['RANGE_DB_PATH=/data/range.sqlite'],
       Labels: labels,
       ExposedPorts: {},
       HostConfig: {
@@ -134,6 +135,8 @@ export async function startMatch(matchId: string, opts: { userId?: string; timeo
         Tmpfs: {
           '/app': 'rw,exec,nosuid,nodev,size=64m,mode=1777',
           '/tmp': 'rw,noexec,nosuid,nodev,size=16m,mode=1777',
+          // Target DB lives here so a patch restart reopens it (RAM only, container-local, not patchable code).
+          '/data': 'rw,noexec,nosuid,nodev,size=16m,mode=1777',
         },
         CapDrop: ['ALL'],
         SecurityOpt: ['no-new-privileges'],

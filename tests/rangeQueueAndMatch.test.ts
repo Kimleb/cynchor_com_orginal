@@ -167,3 +167,21 @@ test('scorer ends a match whose timeout has passed', async () => {
   assert.equal(getRangeMatch(sessionId)?.status, 'TIMEOUT');
   recordAuditLog({ action: 'RANGE_TEST_DONE' });
 });
+test('a vault read rising above the floor is clamped to the floor and audited once', async () => {
+  const { sessionId } = pair();
+  runRange(sessionId);
+  const state = { vault: 30_000_000, patched: false, healthy: true };
+  const deps = { transport: () => fakeTarget(state), stop: stopStub([]) };
+  await scoreTick(sessionId, deps);
+  assert.equal(getRangeMatch(sessionId)?.vault_balance_cents, 30_000_000);
+  state.vault = 50_000_000; // Blue's patched code reseeded the target
+  const t = await scoreTick(sessionId, deps);
+  assert.equal(t.status === 'scored' && t.vault === 30_000_000, true);
+  await scoreTick(sessionId, deps);
+  assert.equal(getRangeMatch(sessionId)?.vault_balance_cents, 30_000_000, 'floor only decreases');
+  const resets = getRangeEvents(sessionId, 'SPECTATOR', 0).filter((e) => e.action === 'RANGE_VAULT_RESET_DETECTED');
+  assert.equal(resets.length, 1);
+  state.vault = 20_000_000;
+  await scoreTick(sessionId, deps);
+  assert.equal(getRangeMatch(sessionId)?.vault_balance_cents, 20_000_000, 'a real drain still lowers the floor');
+});
