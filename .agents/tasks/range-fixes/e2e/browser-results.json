@@ -1,0 +1,135 @@
+{
+  "results": [
+    {
+      "name": "lobby renders for blue",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "blue queued, lobby shows searching",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "red redirected to match page",
+      "pass": true,
+      "extra": "match_e5235f6d-510e-475b-9f96-eb2def90c4ce"
+    },
+    {
+      "name": "blue lobby polling redirected to match page",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "SSE stream connected on red/blue/spectator",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "red side marker",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "blue side marker",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "VaultMeter renders",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "red sees AttackConsole only",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "blue sees PatchConsole only",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "AttackConsole /healthz returns response",
+      "pass": true,
+      "extra": "HTTP 200  application/json; charset=utf-8  {\"ok\":true}"
+    },
+    {
+      "name": "AttackConsole exploit request lands",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "RangeFeed received SSE events (red)",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "PatchConsole submit shows result",
+      "pass": true,
+      "extra": "Patch applied to server.js. The target is restarting."
+    },
+    {
+      "name": "red feed has no PATCH_APPLIED (blue-only)",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "spectator feed has no PROXY_REQUEST/PATCH_APPLIED (side-only)",
+      "pass": true,
+      "extra": "12:44:18 AM[MATCH_PAIRED]e2e_team_red (RED) vs e2e_team_blue (BLUE)12:44:26 AM[EXPLOIT_LANDED]exploit=open-admin probe: "
+    },
+    {
+      "name": "blue feed has no PROXY_REQUEST (red-only)",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "match ended banner + After Action Report link",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "report page renders",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "report has no emails",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "leaderboard room filter has options",
+      "pass": true,
+      "extra": "2"
+    },
+    {
+      "name": "room filter select works",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "leaderboard level filter has options",
+      "pass": true,
+      "extra": "6"
+    },
+    {
+      "name": "level filter select works",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "leaderboard has no emails",
+      "pass": true,
+      "extra": ""
+    },
+    {
+      "name": "no browser console errors",
+      "pass": true,
+      "extra": ""
+    }
+  ],
+  "consoleErrors": []
+}
