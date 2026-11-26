@@ -113,6 +113,8 @@ export async function startMatch(matchId: string, opts: { userId?: string; timeo
   if (!(await docker.ping())) throw new Error('Docker engine is not reachable');
   await ensureImage();
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  // Re-check with no await before the insert: ping and the image build above let a concurrent caller get here first.
+  if (getActiveRangeMatch(matchId)) throw new Error(`match ${matchId} already has a running range target`);
   const row = createRangeMatch(matchId, new Date(Date.now() + timeoutMs).toISOString(), opts.userId);
   const short = row.id.slice(4, 16);
   const labels = { [RANGE_LABEL]: '1', 'cynchor.range.match': row.id };
