@@ -30,9 +30,13 @@ export class DockerError extends Error {
   }
 }
 
+// A hung engine must not hang a route or the scorer forever; image builds get a longer budget.
+const REQUEST_TIMEOUT_MS = Number(process.env.RANGE_DOCKER_TIMEOUT_MS) > 0 ? Number(process.env.RANGE_DOCKER_TIMEOUT_MS) : 30_000;
+const BUILD_TIMEOUT_MS = 600_000;
+const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
 type Raw = { status: number; body: Buffer };
 
-function request(method: string, path: string, body?: unknown | Buffer, headers: Record<string, string> = {}): Promise<Raw> {
+function request(method: string, path: string, body?: unknown | Buffer, headers: Record<string, string> = {}, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Raw> {
   return new Promise((resolve, reject) => {
     const isBuf = Buffer.isBuffer(body);
     const payload = body === undefined ? undefined : isBuf ? (body as Buffer) : Buffer.from(JSON.stringify(body));
@@ -45,9 +49,16 @@ function request(method: string, path: string, body?: unknown | Buffer, headers:
     const lib = 'tls' in endpoint && endpoint.tls ? https : http;
     const req = lib.request(opts, (res) => {
       const chunks: Buffer[] = [];
-      res.on('data', (c: Buffer) => chunks.push(c));
+      let size = 0;
+      res.on('data', (c: Buffer) => {
+        size += c.length;
+        if (size > MAX_RESPONSE_BYTES) return req.destroy(new Error('docker response too large'));
+        chunks.push(c);
+      });
       res.on('end', () => resolve({ status: res.statusCode || 0, body: Buffer.concat(chunks) }));
+      res.on('error', reject);
     });
+    req.setTimeout(timeoutMs, () => req.destroy(new Error(`docker request timed out after ${timeoutMs}ms: ${method} ${path}`)));
     req.on('error', reject);
     if (payload) req.write(payload);
     req.end();
@@ -94,7 +105,7 @@ export async function buildImage(contextDir: string, tag: string): Promise<void>
     p.on('error', reject);
     p.on('close', (code) => (code === 0 ? resolve(Buffer.concat(chunks)) : reject(new Error(`tar exited ${code}`))));
   });
-  const r = await request('POST', `/build?t=${encodeURIComponent(tag)}&rm=1&forcerm=1`, tar, { 'Content-Type': 'application/x-tar' });
+  const r = await request('POST', `/build?t=${encodeURIComponent(tag)}&rm=1&forcerm=1`, tar, { 'Content-Type': 'application/x-tar' }, BUILD_TIMEOUT_MS);
   const text = r.body.toString();
   if (r.status !== 200 || /"error"\s*:/.test(text)) throw new DockerError(r.status, `image build failed: ${text.slice(-500)}`);
 }
