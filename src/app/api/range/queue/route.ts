@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, checkRateLimit } from '@/lib/session';
-import { recordAuditLog } from '@/lib/db';
+import { recordAuditLog, getDb } from '@/lib/db';
 import { startMatch, stopMatch } from '@/lib/range-runtime/orchestrator';
 import { joinRangeQueue, endRangeSession, getMatchAccess, recordRangeEvent } from '@/lib/range-runtime/lobby';
 import { ensureScorerRunning } from '@/lib/range-runtime/scorer';
@@ -60,6 +60,34 @@ export async function POST(req: NextRequest) {
       side: access?.side ?? null,
       status: access?.range?.status ?? 'STARTING',
     });
+  } catch (err: unknown) {
+    console.error(err);
+    return NextResponse.json({ success: false, error: 'Internal error.' }, { status: 500 });
+  }
+}
+
+// Read-only lobby state: the caller's team, any active range match for it, and who is waiting in the queue (team names only).
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    if (user === null) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+    const db = getDb();
+    const myTeam = db.prepare(`
+      SELECT t.id AS id, t.name AS name, t.side AS side, t.status AS status,
+             (SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id) AS size
+      FROM teams t JOIN team_members tm ON tm.team_id = t.id WHERE tm.user_id = ? LIMIT 1
+    `).get(user.id) as { id: string; name: string; side: 'RED' | 'BLUE'; status: string; size: number } | undefined;
+    const active = myTeam === undefined ? undefined : db.prepare(
+      "SELECT id FROM match_sessions WHERE mode = 'RANGE' AND status = 'ACTIVE' AND (red_team_id = ? OR blue_team_id = ?) ORDER BY created_at DESC LIMIT 1",
+    ).get(myTeam.id, myTeam.id) as { id: string } | undefined;
+    const queued = db.prepare(`
+      SELECT t.name AS name, q.side AS side, q.joined_at AS joinedAt,
+             (SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id) AS size
+      FROM matchmaking_queue q JOIN teams t ON t.id = q.team_id WHERE q.status = 'WAITING' ORDER BY q.joined_at ASC LIMIT 50
+    `).all();
+    return NextResponse.json({ success: true, myTeam: myTeam ?? null, activeSessionId: active?.id ?? null, queued });
   } catch (err: unknown) {
     console.error(err);
     return NextResponse.json({ success: false, error: 'Internal error.' }, { status: 500 });
