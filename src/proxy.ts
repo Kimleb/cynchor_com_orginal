@@ -6,7 +6,7 @@ const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  if (process.env.CYNCHOR_DATABASE === 'postgres') {
+  if (process.env.VERCEL === '1' || process.env.CYNCHOR_DATABASE === 'postgres') {
     if (path === '/api/range' || path.startsWith('/api/range/')) {
       return NextResponse.json({ success: false, error: 'The local range runtime requires SQLite.' }, { status: 503 });
     }

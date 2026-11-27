@@ -30,10 +30,7 @@ export function openLocalDatabase(): DatabaseSync {
 
 let applicationDb: ApplicationDatabase | undefined;
 export function getDb(): ApplicationDatabase {
-  const postgres = process.env.CYNCHOR_DATABASE === 'postgres';
-  if (process.env.VERCEL === '1' && !postgres) {
-    throw new Error('Set CYNCHOR_DATABASE=postgres for Vercel deployments.');
-  }
+  const postgres = process.env.VERCEL === '1' || process.env.CYNCHOR_DATABASE === 'postgres';
   return applicationDb ??= postgres
     ? new ApplicationDatabase(undefined, createPostgresPool())
     : new ApplicationDatabase(openLocalDatabase());
