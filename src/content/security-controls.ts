@@ -161,8 +161,8 @@ export const SECURITY_CONTENT = {
       status: 'live-v1',
       verified: true,
       evidence: [
-        { file: 'src/middleware.ts', contains: "frame-ancestors 'none'" },
-        { file: 'src/middleware.ts', contains: 'Cross-origin request blocked.' },
+        { file: 'src/proxy.ts', contains: "frame-ancestors 'none'" },
+        { file: 'src/proxy.ts', contains: 'Cross-origin request blocked.' },
       ],
       howWeVerify: 'HTTP middleware actively enforces strict transport security, framing denial, and CSP across all routes.',
     },

@@ -6,7 +6,7 @@ import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || req.ip || '127.0.0.1';
+    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || '127.0.0.1';
     const rl = checkRateLimit(`public_${ip}`, 10, 60);
     if (!rl.allowed) {
       return NextResponse.json(

@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 const POLL_MS = 1000;
 // Live feed. Members get their own team's feed (Red: RED+ALL events, Blue: BLUE+ALL). `?role=spectator` gives any
 // signed-in user the aggregate feed only (ALL events and the vault balance).
-export async function GET(req: NextRequest, { params }: { params: { matchId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ matchId: string }> }) {
+  const { matchId } = await params;
   try {
     const user = await getCurrentUser();
     if (user === null) {
@@ -17,19 +18,19 @@ export async function GET(req: NextRequest, { params }: { params: { matchId: str
     const spectator = req.nextUrl.searchParams.get('role') === 'spectator';
     let view: Side | 'SPECTATOR';
     if (spectator) {
-      if (!rangeMatchExists(params.matchId)) {
+      if (!rangeMatchExists(matchId)) {
         return NextResponse.json({ success: false, error: 'Match not found.' }, { status: 404 });
       }
       view = 'SPECTATOR';
     } else {
-      const access = getMatchAccess(user.id, params.matchId);
+      const access = getMatchAccess(user.id, matchId);
       if (access === null) {
         return NextResponse.json({ success: false, error: 'Forbidden: you are not a member of this match.' }, { status: 403 });
       }
       view = access.side;
     }
     ensureScorerRunning();
-    const sessionId = params.matchId;
+    const sessionId = matchId;
     const enc = new TextEncoder();
     let timer: ReturnType<typeof setInterval> | undefined;
     let cursor = 0;

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/session';
 import LoginForm from './LoginForm';
 
+export const dynamic = 'force-dynamic';
+
 export default async function LoginPage() {
   const user = await getCurrentUser().catch(() => {
     console.error('Could not check the session on the player sign-in page.');

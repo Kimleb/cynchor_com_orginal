@@ -6,7 +6,7 @@ import { User } from '@/types';
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || req.ip || '127.0.0.1';
+    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || '127.0.0.1';
 
     // Rate limit login attempts: max 5 attempts with lockout backoff
     const rateCheck = checkRateLimit(`login_${ip}`, 5, 60);

@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const { action } = body;
     const db = getDb();
     const now = new Date().toISOString();
-    const ip = req.headers.get('x-forwarded-for') || req.ip || '127.0.0.1';
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
 
     if (action === 'APPROVE_REQUEST') {
       const { requestId, username } = body;

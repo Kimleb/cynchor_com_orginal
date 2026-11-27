@@ -4,7 +4,7 @@ import { checkRateLimit } from '@/lib/session';
 import { usernameSchema } from '@/lib/validators';
 
 export async function POST(req: NextRequest) {
-  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || req.ip || 'local';
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'local';
   const limit = checkRateLimit(`forgot_password_${ip}`, 5, 300);
   if (!limit.allowed) {
     return NextResponse.json({ error: 'Too many requests. Try again later.' }, {

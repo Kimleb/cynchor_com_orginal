@@ -16,11 +16,11 @@ import {
 } from 'lucide-react';
 
 interface ArchitecturePageProps {
-  searchParams: {
+  searchParams: Promise<{
     sessionId?: string;
     mode?: string;
     side?: string;
-  };
+  }>;
 }
 
 export default async function ArchitecturePage({ searchParams }: ArchitecturePageProps) {
@@ -29,7 +29,8 @@ export default async function ArchitecturePage({ searchParams }: ArchitecturePag
   let side: 'RED' | 'BLUE' | 'SOLO' = 'SOLO';
   let sessionId = `ses_${crypto.randomUUID()}`;
 
-  if (searchParams.mode === 'team') {
+  const query = await searchParams;
+  if (query.mode === 'team') {
     // Team sessions come from the database: the caller must belong to a team in an ACTIVE match.
     const row = (await getDb().prepare(`
       SELECT ms.id AS id,
@@ -40,7 +41,7 @@ export default async function ArchitecturePage({ searchParams }: ArchitecturePag
       WHERE ms.status = 'ACTIVE' AND (rtm.user_id IS NOT NULL OR btm.user_id IS NOT NULL)
       ORDER BY (ms.id = ?) DESC, ms.created_at DESC
       LIMIT 1
-    `).get(user.id, user.id, String(searchParams.sessionId ?? ''))) as { id: string; side: 'RED' | 'BLUE' } | undefined;
+    `).get(user.id, user.id, String(query.sessionId ?? ''))) as { id: string; side: 'RED' | 'BLUE' } | undefined;
     if (row === undefined) redirect('/demo/team');
     mode = 'TEAM';
     side = row.side;

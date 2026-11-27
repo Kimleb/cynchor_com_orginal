@@ -92,7 +92,7 @@ export function verifySessionToken(token: string): string | null {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(COOKIE_NAME)?.value;
   if (!sessionCookie) return null;
 
@@ -120,7 +120,7 @@ export async function setSessionCookie(userId: string) {
   await db.prepare('DELETE FROM auth_sessions WHERE expires_at <= ?').run(Date.now());
   await db.prepare('INSERT INTO auth_sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)')
     .run(hashToken(token), userId, Date.now() + SESSION_SECONDS * 1000);
-  cookies().set({
+  (await cookies()).set({
     name: COOKIE_NAME,
     value: token,
     httpOnly: true,
@@ -131,8 +131,8 @@ export async function setSessionCookie(userId: string) {
   });
 }
 
-export function clearSessionCookie() {
-  cookies().set({
+export async function clearSessionCookie() {
+  (await cookies()).set({
     name: COOKIE_NAME,
     value: '',
     httpOnly: true,

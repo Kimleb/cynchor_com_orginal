@@ -6,13 +6,14 @@ import { ensureScorerRunning } from '@/lib/range-runtime/scorer';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 // Patch console: Blue members replace an allowlisted target source file inside the running container, which restarts the target.
-export async function POST(req: NextRequest, { params }: { params: { matchId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ matchId: string }> }) {
+  const { matchId } = await params;
   try {
     const user = await getCurrentUser();
     if (user === null) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
-    const access = getMatchAccess(user.id, params.matchId);
+    const access = getMatchAccess(user.id, matchId);
     if (access === null || access.side !== 'BLUE') {
       return NextResponse.json({ success: false, error: 'Forbidden: the patch console is for the Blue team of this match.' }, { status: 403 });
     }
