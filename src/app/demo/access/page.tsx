@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/session';
 import RequestForm from './RequestForm';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ProductAccess() {
   const user = await getCurrentUser().catch(() => {
     console.error('Could not check the session on the product access page.');

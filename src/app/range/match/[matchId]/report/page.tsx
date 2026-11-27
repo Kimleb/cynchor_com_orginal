@@ -5,16 +5,17 @@ import type { MatchReport } from '@/lib/range-runtime/reports';
 
 const usd = (c: number | null) => (c === null ? 'unknown' : (c / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
 
-export default function ReportPage({ params }: { params: { matchId: string } }) {
+export default function ReportPage({ params }: { params: Promise<{ matchId: string }> }) {
+  const { matchId } = React.use(params);
   const [report, setReport] = useState<MatchReport | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`/api/range/${encodeURIComponent(params.matchId)}/report`)
+    fetch(`/api/range/${encodeURIComponent(matchId)}/report`)
       .then((r) => r.json())
       .then((d) => (d.success ? setReport(d.report) : setError(d.error || 'Report unavailable.')))
       .catch(() => setError('Network error.'));
-  }, [params.matchId]);
+  }, [matchId]);
 
   if (error) return <div className="min-h-[60vh] flex items-center justify-center text-xs text-muted p-6">{error} <Link href="/range/lobby" className="ml-2 text-teal underline">Back to lobby</Link></div>;
   if (!report) return <div className="min-h-[60vh] flex items-center justify-center text-xs text-muted">Loading report...</div>;

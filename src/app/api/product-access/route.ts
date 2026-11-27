@@ -13,7 +13,7 @@ const application = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || req.ip || 'local';
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local';
   const limit = checkRateLimit(`product-access_${ip}`, 5, 60);
   if (!limit.allowed) {
     return NextResponse.json({ error: 'Too many requests. Please try again later.' }, {

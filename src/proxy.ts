@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 const isDev = process.env.NODE_ENV !== 'production';
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (process.env.CYNCHOR_DATABASE === 'postgres') {
     if (path === '/api/range' || path.startsWith('/api/range/')) {

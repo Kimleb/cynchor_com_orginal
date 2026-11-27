@@ -1,3 +1,1 @@
-export default {
-  experimental: { instrumentationHook: true },
-};
+export default {};

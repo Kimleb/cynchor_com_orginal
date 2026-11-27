@@ -1,11 +1,9 @@
 import { redirect } from 'next/navigation';
 
 interface InvitePageProps {
-  params: {
-    token: string;
-  };
+  params: Promise<{ token: string }>;
 }
 
-export default function InvitePage({ params }: InvitePageProps) {
-  redirect(`/demo/claim/${encodeURIComponent(params.token)}`);
+export default async function InvitePage({ params }: InvitePageProps) {
+  redirect(`/demo/claim/${encodeURIComponent((await params).token)}`);
 }

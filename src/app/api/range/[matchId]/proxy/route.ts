@@ -7,13 +7,14 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 const MAX_BODY_CHARS = 16 * 1024;
 // Attack console: Red members send requests to their match's target. The container address never leaves the server.
-export async function POST(req: NextRequest, { params }: { params: { matchId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ matchId: string }> }) {
+  const { matchId } = await params;
   try {
     const user = await getCurrentUser();
     if (user === null) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
-    const access = getMatchAccess(user.id, params.matchId);
+    const access = getMatchAccess(user.id, matchId);
     if (access === null || access.side !== 'RED') {
       return NextResponse.json({ success: false, error: 'Forbidden: the attack console is for the Red team of this match.' }, { status: 403 });
     }

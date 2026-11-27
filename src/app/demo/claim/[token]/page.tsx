@@ -8,13 +8,11 @@ import { ClaimForm } from './ClaimForm';
 export const dynamic = 'force-dynamic';
 
 interface ClaimPageProps {
-  params: {
-    token: string;
-  };
+  params: Promise<{ token: string }>;
 }
 
 export default async function ClaimPage({ params }: ClaimPageProps) {
-  const { token } = params;
+  const { token } = await params;
   const check = await inspectClaimToken(token);
 
   if (check.valid) {

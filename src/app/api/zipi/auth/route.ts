@@ -20,12 +20,12 @@ function codeHash(challenge: string, code: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const limit = checkRateLimit('zipi_' + (req.headers.get('x-forwarded-for')?.split(',')[0] || req.ip || 'local'), 20, 300);
+  const limit = checkRateLimit('zipi_' + (req.headers.get('x-forwarded-for')?.split(',')[0] || 'local'), 20, 300);
   if (!limit.allowed) return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 });
   const data = input.safeParse(await req.json().catch(() => null));
   if (!data.success) return failure();
   const db = getDb();
-  const jar = cookies();
+  const jar = await cookies();
   if (data.data.step === 'start') {
     const { email, code } = data.data;
     const operator = await verifyAuthenticator(email, code);
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
-  const jar = cookies();
+  const jar = await cookies();
   const token = jar.get(zipiSession)?.value;
   if (token) await getDb().prepare('DELETE FROM zipi_sessions WHERE token_hash = ?').run(hashToken(token));
   jar.delete(zipiSession);

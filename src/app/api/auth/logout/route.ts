@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     await revokeUserSessions(user.id);
     await recordAuditLog({ userId: user.username, action: 'LOGOUT', details: 'Session revoked server-side' });
   }
-  clearSessionCookie();
+  await clearSessionCookie();
   if (req.headers.get('accept')?.includes('text/html')) {
     return new NextResponse(null, { status: 303, headers: { Location: '/demo/login' } });
   }
