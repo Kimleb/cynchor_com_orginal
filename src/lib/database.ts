@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { readFileSync } from 'node:fs';
 import type { DatabaseSync } from 'node:sqlite';
 import { types, Pool, type PoolClient } from 'pg';
+import { supabaseRootCa } from './supabase-ca';
 
 type Parameter = string | number | bigint | null | Uint8Array;
 type Row = Record<string, any>;
@@ -14,10 +15,23 @@ export function postgresSchema() {
 }
 
 export function createPostgresPool() {
-  const url = new URL(process.env.DATABASE_URL ?? '');
-  const ca = process.env.DATABASE_CA_CERT?.replaceAll('\\n', '\n')
-    || (process.env.DATABASE_CA_FILE && readFileSync(process.env.DATABASE_CA_FILE, 'utf8'));
-  if (!ca) throw new Error('DATABASE_CA_CERT or DATABASE_CA_FILE is required for Postgres');
+  const connection = process.env.DATABASE_URL?.trim();
+  if (!connection) throw Object.assign(new Error('DATABASE_URL is missing.'), { code: 'DB_URL_MISSING' });
+  let url: URL;
+  try {
+    url = new URL(connection);
+    if (!['postgres:', 'postgresql:'].includes(url.protocol) || !url.hostname || !url.username || !url.password) {
+      throw new Error('Expected a Postgres connection string with credentials.');
+    }
+  } catch {
+    throw Object.assign(new Error('DATABASE_URL is invalid.'), { code: 'DB_URL_INVALID' });
+  }
+  const supabaseHost = url.hostname.endsWith('.pooler.supabase.com')
+    || /^db\.[a-z0-9]+\.supabase\.co$/.test(url.hostname);
+  const ca = process.env.DATABASE_CA_CERT?.trim().replaceAll('\\n', '\n')
+    || (process.env.DATABASE_CA_FILE && readFileSync(process.env.DATABASE_CA_FILE, 'utf8'))
+    || (supabaseHost ? supabaseRootCa : undefined);
+  if (!ca) throw Object.assign(new Error('Postgres CA is missing.'), { code: 'DB_CA_MISSING' });
   // Use explicit connection fields so URL SSL options cannot replace the trusted CA.
   const schema = postgresSchema();
   const pool = new Pool({
