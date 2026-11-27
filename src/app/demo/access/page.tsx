@@ -4,7 +4,10 @@ import { getCurrentUser } from '@/lib/session';
 import RequestForm from './RequestForm';
 
 export default async function ProductAccess() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser().catch(() => {
+    console.error('Could not check the session on the product access page.');
+    return null;
+  });
   if (user) redirect(user.is_profile_completed ? '/demo/dashboard' : '/demo/profile');
 
   return (

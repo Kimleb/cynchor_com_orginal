@@ -16,8 +16,12 @@ const schemas = {
 
 type AccountTable = keyof typeof schemas;
 
+function quoteIdentifier(identifier: string): string {
+  return '"' + identifier.replaceAll('"', '""') + '"';
+}
+
 function columns(db: DatabaseSync, table: string): string[] {
-  return db.prepare(`PRAGMA table_info(${table})`).all().map(row => String(row.name));
+  return db.prepare(`PRAGMA table_info(${quoteIdentifier(table)})`).all().map(row => String(row.name));
 }
 
 const seedHandles: Record<string, string> = {
@@ -58,8 +62,8 @@ export function initializeAccounts(db: DatabaseSync) {
       if (table === 'users') migrateHandles(db, original.includes('username'));
       db.exec(`CREATE TABLE new_${table} (${definition})`);
       const existing = columns(db, table);
-      const shared = columns(db, 'new_' + table).filter(col => existing.includes(col)).join(', ');
-      db.exec(`INSERT INTO new_${table} (${shared}) SELECT ${shared} FROM ${table}`);
+      const shared = columns(db, 'new_' + table).filter(col => existing.includes(col)).map(quoteIdentifier).join(', ');
+      db.exec(`INSERT INTO ${quoteIdentifier('new_' + table)} (${shared}) SELECT ${shared} FROM ${quoteIdentifier(table)}`);
       if (table === 'invites' && original.includes('email')) {
         // A formerly email-bound token must never become an unrestricted claim.
         db.exec('UPDATE new_invites SET is_used = 1 WHERE id IN (SELECT id FROM invites WHERE email IS NOT NULL)');

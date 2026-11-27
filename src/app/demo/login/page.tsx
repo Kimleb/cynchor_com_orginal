@@ -4,7 +4,10 @@ import { getCurrentUser } from '@/lib/session';
 import LoginForm from './LoginForm';
 
 export default async function LoginPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUser().catch(() => {
+    console.error('Could not check the session on the player sign-in page.');
+    return null;
+  });
   if (user) redirect(user.is_profile_completed ? '/demo/dashboard' : '/demo/profile');
 
   return (

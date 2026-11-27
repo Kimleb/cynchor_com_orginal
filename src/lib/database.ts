@@ -15,8 +15,9 @@ export function postgresSchema() {
 
 export function createPostgresPool() {
   const url = new URL(process.env.DATABASE_URL ?? '');
-  const certificate = process.env.DATABASE_CA_FILE;
-  if (!certificate) throw new Error('DATABASE_CA_FILE is required for Postgres');
+  const ca = process.env.DATABASE_CA_CERT?.replaceAll('\\n', '\n')
+    || (process.env.DATABASE_CA_FILE && readFileSync(process.env.DATABASE_CA_FILE, 'utf8'));
+  if (!ca) throw new Error('DATABASE_CA_CERT or DATABASE_CA_FILE is required for Postgres');
   // Use explicit connection fields so URL SSL options cannot replace the trusted CA.
   const schema = postgresSchema();
   const pool = new Pool({
@@ -25,7 +26,7 @@ export function createPostgresPool() {
     database: decodeURIComponent(url.pathname.slice(1)),
     user: decodeURIComponent(url.username),
     password: decodeURIComponent(url.password),
-    ssl: { ca: readFileSync(certificate, 'utf8'), rejectUnauthorized: true, servername: url.hostname },
+    ssl: { ca, rejectUnauthorized: true, servername: url.hostname },
     types: {
       getTypeParser: (oid, format) => oid === 20 && format !== 'binary'
         ? (value: string) => {

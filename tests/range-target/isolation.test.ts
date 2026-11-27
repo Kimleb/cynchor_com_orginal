@@ -128,7 +128,14 @@ test('stop destroys container and network; timeout and kill paths are audited', 
 test('a match past its timeout is force-destroyed automatically', { timeout: 300_000 }, async () => {
   const T = `${unique}_t`;
   const row = await orch.startMatch(T, { timeoutMs: 4000 });
-  for (let i = 0; i < 60 && dbm.getRangeMatchById(row.id)?.status === 'RUNNING'; i++) await new Promise((r) => setTimeout(r, 500));
+  // The database transition happens before asynchronous Docker cleanup.
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if (dbm.getRangeMatchById(row.id)?.status === 'TIMEOUT'
+      && await dock.inspectContainer(row.container_id!) === null
+      && await dock.inspectNetwork(row.network_id!) === null) break;
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
   assert.equal(dbm.getRangeMatchById(row.id)?.status, 'TIMEOUT');
   assert.equal(await dock.inspectContainer(row.container_id!), null);
   assert.equal(await dock.inspectNetwork(row.network_id!), null);
@@ -138,7 +145,7 @@ test('a match past its timeout is force-destroyed automatically', { timeout: 300
 
 test('kill route is operator-only', () => {
   const src = fs.readFileSync('src/app/api/range/admin/kill/route.ts', 'utf8');
-  assert.match(src, /!user \|\| !user\.is_operator/);
+  assert.match(src, /const user = await getZipiOperator\(\);\s*if \(!user\)/);
   assert.match(src, /status: 403/);
-  assert.ok(src.indexOf('is_operator') < src.indexOf('stopMatch('), 'authz before any destroy');
+  assert.ok(src.indexOf('if (!user)') < src.indexOf('await stopMatch('), 'authz before any destroy');
 });
