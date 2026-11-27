@@ -86,13 +86,13 @@ export default function HomePage() {
 
               {/* CTAs */}
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <button
-                  onClick={() => setIsDisclaimerOpen(true)}
+                <Link
+                  href="/demo/access"
                   className="cy-btn-sheen px-6 py-3 rounded-xl bg-teal text-bg font-heading font-semibold text-sm hover:shadow-glow-teal transition-all flex items-center justify-center gap-2 focus:ring-2 focus:ring-teal focus:outline-none"
                 >
                   <ShieldCheck className="w-4 h-4" />
                   Test Our Product
-                </button>
+                </Link>
 
                 <a
                   href="#how-it-works"
@@ -447,7 +447,7 @@ export default function HomePage() {
                 Network Segmentation
               </strong>
               <p className="leading-relaxed">
-                Dedicated VLANs and Proxmox SDN firewall policies prevent lateral leakage across tenants.
+                Dedicated VLANs and Cynchor range firewall policies prevent lateral leakage across tenants.
               </p>
             </Reveal>
             <Reveal variant="fade-up" className="p-5 rounded-xl bg-surface border border-border space-y-2 cy-hover-card">
@@ -484,17 +484,17 @@ export default function HomePage() {
           </h2>
 
           <p className="text-xs sm:text-sm text-muted max-w-lg mx-auto">
-            Access the live invite-only Proxmox cyber range today.
+            Access the invite-only Cynchor cyber range today.
           </p>
 
           <div className="pt-2">
-            <button
-              onClick={() => setIsDisclaimerOpen(true)}
+            <Link
+              href="/demo/access"
               className="cy-btn-sheen px-8 py-3.5 rounded-xl bg-teal text-bg font-heading font-semibold text-sm hover:shadow-glow-teal transition-all inline-flex items-center gap-2 focus:ring-2 focus:ring-teal focus:outline-none"
             >
               <ShieldCheck className="w-4 h-4" />
               Test Our Product
-            </button>
+            </Link>
           </div>
         </Reveal>
       </section>

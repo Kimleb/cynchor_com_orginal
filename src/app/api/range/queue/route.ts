@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, checkRateLimit } from '@/lib/session';
-import { recordAuditLog, getDb } from '@/lib/db';
+import { recordLocalAuditLog as recordAuditLog, openLocalDatabase as getDb } from '@/lib/db';
 import { startMatch, stopMatch } from '@/lib/range-runtime/orchestrator';
 import { joinRangeQueue, endRangeSession, getMatchAccess, recordRangeEvent } from '@/lib/range-runtime/lobby';
 import { ensureScorerRunning } from '@/lib/range-runtime/scorer';

@@ -94,7 +94,7 @@ const BLUE_ALERTS_SCENARIO_1: BlueAlert[] = [
   { id: 1, stepId: 1, timeStr: '24:12', title: 'Directory query anomaly flagged', appearTime: 6, containedTime: 9, xp: 140, detail: 'SIEM correlates 1,200 LDAP queries from unapproved workstation.' },
   { id: 2, stepId: 2, timeStr: '23:48', title: 'Phishing email quarantined', appearTime: 15, containedTime: 18, xp: 200, detail: 'Mail filter matches spoofed domain header and revokes inbox delivery.' },
   { id: 3, stepId: 3, timeStr: '23:18', title: 'Suspicious SSO login contained', appearTime: 24, containedTime: 28, xp: 160, detail: 'Impossible travel alert triggered; session token invalidated.' },
-  { id: 4, stepId: 4, timeStr: '22:45', title: 'Lateral movement blocked at segment', appearTime: 34, containedTime: 39, xp: 220, detail: 'Proxmox SDN filter drops cross-VLAN SMB traffic to banking vault.' },
+  { id: 4, stepId: 4, timeStr: '22:45', title: 'Lateral movement blocked at segment', appearTime: 34, containedTime: 39, xp: 220, detail: 'Cynchor range firewall drops cross-VLAN SMB traffic to banking vault.' },
 ];
 
 const BLUE_ALERTS_SCENARIO_2: BlueAlert[] = [
@@ -801,7 +801,7 @@ export function LaptopEventMockup() {
                             <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
                             {containedCount} Interceptions Contained
                           </span>
-                          <span>Proxmox SDN Tap: ACTIVE</span>
+                          <span>Cynchor Network Tap: ACTIVE</span>
                         </div>
                       </div>
 
@@ -949,7 +949,7 @@ export function LaptopEventMockup() {
                     <div className="pt-3 border-t border-[#26262C] flex items-center justify-between text-xs font-mono text-[#A1A1AA]">
                       <span className="text-teal font-semibold flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
-                        12/12 Proxmox Virtual Taps Synchronized
+                        12/12 Cynchor Virtual Taps Synchronized
                       </span>
                       <span>Zero False Positives • Scope: fintechcorp.local</span>
                     </div>

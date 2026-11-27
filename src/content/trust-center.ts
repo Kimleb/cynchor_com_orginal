@@ -266,15 +266,15 @@ export const TRUST_CENTER_CONTENT: TrustCenterContent = {
     items: [
       {
         table: 'users',
-        fields: 'id, email, password_hash, name, role, experience_level, is_operator, created_at',
-        purpose: 'Operator authentication and role assignment for cyber range administration.',
-        isHashed: 'Passwords stored as salted scrypt hashes. User IDs and names are stored in plaintext.',
+        fields: 'id, username, password_hash, role, experience_level, is_operator, created_at',
+        purpose: 'Operator and participant authentication via self-chosen or operator-assigned callsign (username).',
+        isHashed: 'Passwords stored as salted scrypt hashes. Usernames (not real names) and IDs are stored in plaintext; no email address is collected or stored.',
       },
       {
         table: 'access_requests',
-        fields: 'id, name, email, source, status, created_at, approved_at',
-        purpose: 'Waitlist review and operator evaluation for pilot range admission.',
-        isHashed: 'Plaintext operational contact fields (name, email). Minimal data collection.',
+        fields: 'id, note, source, status, created_at, approved_at, claim_token_hash',
+        purpose: 'Waitlist review and operator evaluation for pilot/demo range admission.',
+        isHashed: 'Request messages are stored as text. Product applications also store the applicant’s name and reply email for operator review and delivery.',
       },
       {
         table: 'disclaimers',
@@ -295,7 +295,7 @@ export const TRUST_CENTER_CONTENT: TrustCenterContent = {
         isHashed: 'Internal simulation UUIDs and squad names; no external personal data.',
       },
     ],
-    plainSummary: 'The disclaimer record stores a hashed IP and a truncated user-agent; access requests store name and email; passwords are stored only as scrypt hashes.',
+    plainSummary: 'The disclaimer record stores a hashed IP and a truncated user-agent; product access requests store a name, reply email and message for operator review and email delivery; user accounts store a username (not a real name) and a salted scrypt password hash. The product access form sends the applicant’s name, email and message to the operator mailbox.',
     retentionNote: 'Retention schedule: on roadmap (retention and purge schedule not yet formally enforced).',
     // hostingRegion is deliberately omitted / undefined until confirmed by deployment owner
     aiDisclosure: 'Cynchor does not use customer or user data to train models. Hints and validators in the product are rule-based, not AI-generated. The range uses only synthetic data.',
@@ -304,6 +304,14 @@ export const TRUST_CENTER_CONTENT: TrustCenterContent = {
     title: 'Third Parties & Subprocessors',
     subtitle: 'External services contacted by the platform runtime based on code inspection.',
     roster: [
+      {
+        id: 'resend',
+        name: 'Resend',
+        purpose: 'Email delivery for product access requests.',
+        dataShared: 'Applicant name, reply email, and request message.',
+        status: 'Used when email delivery is configured',
+        isVisible: true,
+      },
       {
         id: 'google-fonts',
         name: 'Google Fonts',
@@ -329,7 +337,7 @@ export const TRUST_CENTER_CONTENT: TrustCenterContent = {
         isVisible: false, // hidden until owner supplies
       },
     ],
-    noVendorsStatement: 'No analytics, advertising or email-delivery vendors are used.',
+    noVendorsStatement: 'Product access email delivery uses Resend when configured.',
   },
   accessControl: {
     title: 'Access Control & Operator Identity',
@@ -386,9 +394,9 @@ export const TRUST_CENTER_CONTENT: TrustCenterContent = {
       {
         id: 'q-mfa-sso',
         question: 'Do you support Single Sign-On (SSO) or Multi-Factor Authentication (MFA)?',
-        answer: 'Not in place today. MFA for operator accounts is cataloged on our roadmap for V2.',
+        answer: 'Operator sign-in requires a Google Authenticator code and a verification code sent to the enrolled Cynchor mailbox. SSO is unavailable.',
         controlId: 'ctrl-mfa',
-        isInPlace: false,
+        isInPlace: true,
       },
       {
         id: 'q-pentest',
@@ -432,7 +440,7 @@ export const TRUST_CENTER_CONTENT: TrustCenterContent = {
       {
         id: 'q-subprocessors',
         question: 'What third-party subprocessors or external vendors are contacted?',
-        answer: 'Google Fonts for typography assets. No analytics, advertising, or email-delivery vendors are used. Cloud hosting is planned for V2 and not yet integrated.',
+        answer: 'Google Fonts for typography assets. Product access requests use Resend for email delivery when configured. Cloud hosting is planned for V2 and not yet integrated.',
         isInPlace: true,
       },
       {
@@ -443,8 +451,8 @@ export const TRUST_CENTER_CONTENT: TrustCenterContent = {
       },
       {
         id: 'q-admin-governance',
-        question: 'How are administrative privileges governed?',
-        answer: 'Operator privileges require server-side RBAC verification on every request. Accounts are provisioned by invitation only; public signup is disabled.',
+        question: 'How are administrative privileges governed and what personal data is collected?',
+        answer: 'Operator privileges require server-side RBAC verification on every request. Operators issue usernames and passwords or one-time claim links. The product access form collects a name, email and message so operators can reply.',
         controlId: 'ctrl-rbac-enforcement',
         isInPlace: true,
       },

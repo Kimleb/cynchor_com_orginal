@@ -1,5 +1,5 @@
 // Read-only report and leaderboard queries over ended range matches. Database only; usernames, never emails.
-import { getDb, getRangeMatch } from '@/lib/db';
+import { openLocalDatabase as getDb, getRangeMatch } from '@/lib/db';
 import { EXPLOIT_IDS, type ExploitId } from '@/lib/range-runtime/exploitChecks';
 
 export const VAULT_START_CENTS = 50_000_000;
@@ -19,7 +19,7 @@ function parseSummary(details: string): Summary {
   };
 }
 
-const nameOf = (userId: string): string | null => (getDb().prepare('SELECT name FROM users WHERE id = ?').get(userId) as { name: string } | undefined)?.name ?? null;
+const nameOf = (userId: string): string | null => (getDb().prepare('SELECT username AS name FROM users WHERE id = ?').get(userId) as { name: string } | undefined)?.name ?? null;
 
 function mvpView(raw: string | null): { name: string; count: number } | null {
   const m = raw === null ? null : /^(.*)\((\d+)\)$/.exec(raw);
@@ -52,7 +52,7 @@ export function buildReport(matchId: string): MatchReport | null {
   `).get(matchId) as { status: string; created_at: string; red_name: string | null; blue_name: string | null } | undefined;
   if (ms === undefined || ms.status === 'ACTIVE') return null;
   const rows = db.prepare(`
-    SELECT a.rowid AS id, a.action AS action, a.details AS details, a.created_at AS at, u.name AS user
+    SELECT a.rowid AS id, a.action AS action, a.details AS details, a.created_at AS at, u.username AS user
     FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id
     WHERE instr(a.details, ?) = 1 AND a.action <> 'RANGE_CONTAINER_LOG'
     ORDER BY a.rowid ASC LIMIT 2000
@@ -130,7 +130,7 @@ export function buildLeaderboard(filter: LeaderboardFilter = {}): Leaderboard {
     bump(s.blue_name, 'BLUE', w === 'BLUE');
   }
   const rows = db.prepare(`
-    SELECT u.name AS name, a.action AS action, a.details AS details
+    SELECT u.username AS name, a.action AS action, a.details AS details
     FROM audit_logs a JOIN users u ON u.id = a.user_id
     WHERE a.action IN ('RANGE_EXPLOIT_LANDED', 'RANGE_PATCH_APPLIED') AND instr(a.details, '[range:') = 1
   `).all() as Array<{ name: string; action: string; details: string }>;

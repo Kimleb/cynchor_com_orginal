@@ -1,7 +1,7 @@
 // Database-only range lobby logic: queue/pairing, per-match access checks, tagged events and match end.
 // No Docker imports, so tests can exercise it without a container.
 import crypto from 'crypto';
-import { getDb, endMatch, endStaleMatches, recordAuditLog, getRangeMatch, type RangeMatchRow } from '@/lib/db';
+import { openLocalDatabase as getDb, endLocalMatch as endMatch, endStaleLocalMatches as endStaleMatches, recordLocalAuditLog as recordAuditLog, getRangeMatch, type RangeMatchRow } from '@/lib/db';
 export type Side = 'RED' | 'BLUE';
 export type EventScope = Side | 'ALL';
 export const DEFAULT_MIN_TEAM_SIZE = 2;
@@ -93,7 +93,7 @@ export type FeedEvent = { rowid: number; action: string; userName: string | null
 export function getRangeEvents(sessionId: string, view: Side | 'SPECTATOR', afterRowid: number, limit = 100): FeedEvent[] {
   const own = view === 'SPECTATOR' ? rangeTag(sessionId, 'ALL') : rangeTag(sessionId, view);
   const rows = getDb().prepare(`
-    SELECT a.rowid AS rowid, a.action AS action, a.details AS details, a.created_at AS at, u.name AS userName
+    SELECT a.rowid AS rowid, a.action AS action, a.details AS details, a.created_at AS at, u.username AS userName
     FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id
     WHERE a.rowid > ? AND (instr(a.details, ?) = 1 OR instr(a.details, ?) = 1)
     ORDER BY a.rowid ASC LIMIT ?

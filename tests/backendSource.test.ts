@@ -5,8 +5,7 @@ import { getDb } from '../src/lib/db';
 
 test('Backend: accessRequestSchema accepts source pilot and demo, rejects others', () => {
   const pilotValid = accessRequestSchema.safeParse({
-    name: 'Operator Beta',
-    email: 'pilot@fintechcorp.local',
+    note: 'University cohort pilot',
     source: 'pilot',
   });
   assert.equal(pilotValid.success, true);
@@ -15,15 +14,13 @@ test('Backend: accessRequestSchema accepts source pilot and demo, rejects others
   }
 
   const demoValid = accessRequestSchema.safeParse({
-    name: 'Operator Beta',
-    email: 'demo@fintechcorp.local',
+    note: 'Demo evaluation',
     source: 'demo',
   });
   assert.equal(demoValid.success, true);
 
   const defaultSource = accessRequestSchema.safeParse({
-    name: 'Operator Beta',
-    email: 'default@fintechcorp.local',
+    note: 'Default source',
   });
   assert.equal(defaultSource.success, true);
   if (defaultSource.success) {
@@ -31,35 +28,29 @@ test('Backend: accessRequestSchema accepts source pilot and demo, rejects others
   }
 
   const invalidSource = accessRequestSchema.safeParse({
-    name: 'Operator Beta',
-    email: 'invalid@fintechcorp.local',
+    note: 'Invalid source',
     source: 'other_unknown_source',
   });
   assert.equal(invalidSource.success, false);
 });
 
 test('Backend: honeypot website field rejects non-empty values', () => {
-  // Empty website passes
   const emptyHoneypot = accessRequestSchema.safeParse({
-    name: 'Real Human',
-    email: 'human@fintechcorp.local',
+    note: 'Real human',
     website: '',
   });
   assert.equal(emptyHoneypot.success, true);
 
-  // Filled website fails validation
   const spamBot = accessRequestSchema.safeParse({
-    name: 'Spam Bot',
-    email: 'bot@fintechcorp.local',
+    note: 'Spam bot',
     website: 'https://spammy-site.invalid',
   });
   assert.equal(spamBot.success, false);
 });
 
-test('Backend: access_requests table has source column in database', () => {
+test('Backend: access_requests table has source and note columns in database', async () => {
   const db = getDb();
-  const cols = db.prepare('PRAGMA table_info(access_requests)').all() as Array<{ name: string }>;
-  const hasSource = cols.some((c) => c.name === 'source');
-  assert.equal(hasSource, true);
+  const cols = (await db.prepare('PRAGMA table_info(access_requests)').all()) as Array<{ name: string }>;
+  assert.equal(cols.some((c) => c.name === 'source'), true);
+  assert.equal(cols.some((c) => c.name === 'note'), true);
 });
-

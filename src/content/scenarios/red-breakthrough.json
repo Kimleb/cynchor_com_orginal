@@ -130,7 +130,7 @@
         "description": "SOC issues micro-segmentation isolation rule on ws-402 and revokes SVC-BACKUP Kerberos tickets.",
         "mitre": "T1021.002",
         "cmd": "pve-firewall ipset add quarantined_hosts 10.0.2.42; klist purge /user:SVC-BACKUP",
-        "log": "Proxmox SDN: Rule applied - DROP ALL IN/OUT ws-402 (10.0.2.42) except SOC tap 10.0.99.1",
+        "log": "Cynchor Range Firewall: Rule applied - DROP ALL IN/OUT ws-402 (10.0.2.42) except SOC tap 10.0.99.1",
         "mttd": 32,
         "attackerMove": "Adversary attempts persistent C2 heartbeat from ws-402.",
         "defenderDetect": "Immediate TCP RST on command-and-control beacon and host isolation.",

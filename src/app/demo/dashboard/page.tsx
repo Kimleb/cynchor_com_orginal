@@ -35,7 +35,7 @@ export default async function DashboardPage() {
     WHERE tm.user_id = ?
     ORDER BY tm.joined_at DESC LIMIT 1
   `);
-  const activeTeam = teamMemberStmt.get(user.id) as {
+  const activeTeam = (await teamMemberStmt.get(user.id)) as {
     id: string;
     name: string;
     side: 'RED' | 'BLUE';
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     WHERE user_id = ? OR red_team_id = ? OR blue_team_id = ?
     ORDER BY created_at DESC LIMIT 1
   `);
-  const recentSession = sessionStmt.get(user.id, activeTeam?.id || '', activeTeam?.id || '') as {
+  const recentSession = (await sessionStmt.get(user.id, activeTeam?.id || '', activeTeam?.id || '')) as {
     id: string;
     mode: string;
     side: string;
@@ -68,13 +68,13 @@ export default async function DashboardPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="font-heading font-bold text-xl text-text">
-                  {user.name}
+                <h1 className="font-heading font-bold text-xl text-text font-mono">
+                  @{user.username}
                 </h1>
                 <Badge type="v1" size="sm" />
                 {user.is_operator === 1 && <Badge type="operator" size="sm" />}
               </div>
-              <p className="text-xs text-muted font-mono mt-0.5">{user.email}</p>
+              <p className="text-xs text-muted font-mono mt-0.5">{user.id}</p>
             </div>
           </div>
 
@@ -130,11 +130,19 @@ export default async function DashboardPage() {
         )}
 
         {/* Section Heading */}
-        <div className="text-left space-y-1">
-          <h2 className="font-heading font-bold text-lg text-text">Select Exercise Mode</h2>
-          <p className="text-xs text-muted">
-            Launch straight into your single-user pod or assemble a squad for matchmaking.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-left space-y-1">
+            <h2 className="font-heading font-bold text-lg text-text">Select Exercise Mode</h2>
+            <p className="text-xs text-muted">
+              Launch straight into your single-user pod or assemble a squad for matchmaking.
+            </p>
+          </div>
+          <Link
+            href="/demo/ranges"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal text-bg text-xs font-heading font-semibold hover:shadow-glow-teal transition-all shrink-0"
+          >
+            Fintech Ranges (Live PvP) <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {/* DFD Outgoing Arrows: Exactly TWO Options / Cards */}
@@ -250,7 +258,7 @@ export default async function DashboardPage() {
             </span>
           </div>
           <span className="font-mono text-[11px] text-muted">
-            HYPERVISOR: PROXMOX-VE-SDN-v1
+            ENVIRONMENT: CYNCHOR RANGE
           </span>
         </div>
       </div>

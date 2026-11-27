@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb, verifyPassword, recordAuditLog, verifyAndConsumeInvite } from '@/lib/db';
+import { getDb, verifyPassword, recordAuditLog, inspectClaimToken, verifyAndConsumeInvite } from '@/lib/db';
 import { checkRateLimit, resetRateLimit, setSessionCookie } from '@/lib/session';
 import { loginSchema } from '@/lib/validators';
 import { User } from '@/types';
@@ -7,7 +7,7 @@ import { User } from '@/types';
 export async function POST(req: NextRequest) {
   try {
     const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || req.ip || '127.0.0.1';
-    
+
     // Rate limit login attempts: max 5 attempts with lockout backoff
     const rateCheck = checkRateLimit(`login_${ip}`, 5, 60);
     if (!rateCheck.allowed) {
@@ -30,54 +30,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, password } = parseResult.data;
-    const emailRate = checkRateLimit(`login_email_${email.toLowerCase()}`, 5, 60);
-    if (!emailRate.allowed) {
+    const { username, password } = parseResult.data;
+    const usernameRate = checkRateLimit(`login_username_${username.toLowerCase()}`, 5, 60);
+    if (!usernameRate.allowed) {
       return NextResponse.json(
-        { success: false, error: "Too many login attempts. Please try again later." },
-        { status: 429, headers: { "Retry-After": String(emailRate.retryAfter || 60) } }
+        { success: false, error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(usernameRate.retryAfter || 60) } }
       );
     }
     const inviteToken = body.inviteToken;
 
     const db = getDb();
-    const userStmt = db.prepare('SELECT * FROM users WHERE email = ?');
-    const user = userStmt.get(email) as (User & { password_hash: string }) | undefined;
+    const userStmt = db.prepare('SELECT id, username, password_hash, role, experience_level, is_profile_completed, is_operator, created_at FROM users WHERE username = ?');
+    const user = (await userStmt.get(username)) as (User & { password_hash: string }) | undefined;
 
     // Timing-safe check: no user enumeration (same time taken even if user does not exist)
-    const dummyHash = '00000000000000000000000000000000:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
+    const dummyHash =
+      '00000000000000000000000000000000:00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000';
     const hashToVerify = user ? user.password_hash : dummyHash;
     const isValid = verifyPassword(password, hashToVerify);
 
     if (!user || !isValid) {
-      recordAuditLog({
-        userId: email,
+      await recordAuditLog({
+        userId: username,
         action: 'LOGIN_FAILED',
         details: 'Failed credentials entered',
         ip,
       });
       return NextResponse.json(
-        { success: false, error: 'Invalid email or password.' },
+        { success: false, error: 'Invalid username or password.' },
         { status: 401 }
       );
     }
 
-    // If an invite token was provided, consume it
-    if (inviteToken) {
-      verifyAndConsumeInvite(String(inviteToken), email);
+    if (typeof inviteToken === 'string' && (await inspectClaimToken(inviteToken)).purpose === 'CLAIM') {
+      await verifyAndConsumeInvite(inviteToken);
     }
 
-    // Successful login: reset rate limit counter
+    await setSessionCookie(user.id);
     resetRateLimit(`login_${ip}`);
+    resetRateLimit(`login_username_${username}`);
 
-    // Set signed HTTP-only rotated session cookie
-    setSessionCookie(user.id);
-
-    // Audit log successful authentication
-    recordAuditLog({
-      userId: user.id,
+    await recordAuditLog({
+      userId: user.username,
       action: 'LOGIN_SUCCESS',
-      details: `User ${user.email} logged in successfully`,
+      details: `User ${user.username} logged in successfully`,
       ip,
     });
 
@@ -89,8 +86,7 @@ export async function POST(req: NextRequest) {
       redirectTo: isNew ? '/demo/profile' : '/demo/dashboard',
       user: {
         id: user.id,
-        email: user.email,
-        name: user.name,
+        username: user.username,
         role: user.role,
         is_operator: user.is_operator,
       },

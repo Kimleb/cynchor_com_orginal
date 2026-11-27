@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
-import { getDb, getRangeMatch } from '@/lib/db';
+import { openLocalDatabase as getDb, getRangeMatch } from '@/lib/db';
 import { getMatchAccess, getRangeEvents, rangeMatchExists, type Side } from '@/lib/range-runtime/lobby';
 import { ensureScorerRunning } from '@/lib/range-runtime/scorer';
 export const runtime = 'nodejs';

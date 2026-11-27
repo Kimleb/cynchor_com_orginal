@@ -1,7 +1,7 @@
 // DB-level range queue/match tests. No Docker: the container stop and the target transport are stubbed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getDb, createRangeMatch, updateRangeMatch, getRangeMatch, endRangeMatch, recordAuditLog } from '../src/lib/db';
+import { openLocalDatabase as getDb, createRangeMatch, updateRangeMatch, getRangeMatch, endRangeMatch, recordLocalAuditLog as recordAuditLog } from '../src/lib/db';
 import { joinRangeQueue, getMatchAccess, endRangeSession, getRangeEvents, recordRangeEvent, type StopFn } from '../src/lib/range-runtime/lobby';
 import { scoreTick, reconcileEndedMatches } from '../src/lib/range-runtime/scorer';
 import type { Transport } from '../src/lib/range-runtime/exploitChecks';
@@ -15,7 +15,7 @@ function seedTeam(side: 'RED' | 'BLUE', members: number) {
   const users: string[] = [];
   for (let i = 0; i < members; i++) {
     const uid = `u_${id}_${i}`;
-    db.prepare("INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, 'x', ?, ?)").run(uid, `${uid}@example.test`, `Player ${i}`, now);
+    db.prepare("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, 'x', ?)").run(uid, uid, now);
     db.prepare('INSERT INTO team_members (id, team_id, user_id, joined_at) VALUES (?, ?, ?, ?)').run(`tm_${uid}`, id, uid, now);
     users.push(uid);
   }

@@ -115,7 +115,7 @@ test('stop destroys container and network; timeout and kill paths are audited', 
   assert.equal(dbm.getRangeMatchById(b.id)?.status, 'ENDED');
   assert.ok(dbm.getRangeMatchById(b.id)?.ended_at);
 
-  const logs = dbm.getDb().prepare('SELECT user_id, action, details FROM audit_logs ORDER BY rowid').all() as Array<{ user_id: string; action: string; details: string }>;
+  const logs = dbm.openLocalDatabase().prepare('SELECT user_id, action, details FROM audit_logs ORDER BY rowid').all() as Array<{ user_id: string; action: string; details: string }>;
   const actions = logs.map((l) => l.action);
   for (const want of ['RANGE_MATCH_STARTED', 'RANGE_MATCH_KILLED', 'RANGE_MATCH_ENDED', 'RANGE_CONTAINER_LOG']) assert.ok(actions.includes(want), `audit has ${want}`);
   assert.ok(logs.some((l) => l.action === 'RANGE_MATCH_KILLED' && l.user_id === 'user_op_001'), 'kill records operator id');
@@ -132,7 +132,7 @@ test('a match past its timeout is force-destroyed automatically', { timeout: 300
   assert.equal(dbm.getRangeMatchById(row.id)?.status, 'TIMEOUT');
   assert.equal(await dock.inspectContainer(row.container_id!), null);
   assert.equal(await dock.inspectNetwork(row.network_id!), null);
-  const n = dbm.getDb().prepare("SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'RANGE_MATCH_TIMEOUT'").get() as { n: number };
+  const n = dbm.openLocalDatabase().prepare("SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'RANGE_MATCH_TIMEOUT'").get() as { n: number };
   assert.equal(n.n, 1);
 });
 

@@ -21,8 +21,7 @@ export function DisclaimerModal({ isOpen, onClose }: DisclaimerModalProps) {
   const [tokenError, setTokenError] = useState('');
 
   // Path B state
-  const [reqName, setReqName] = useState('');
-  const [reqEmail, setReqEmail] = useState('');
+  const [reqNote, setReqNote] = useState('');
   const [isRequesting, setIsRequesting] = useState(false);
   const [requestSubmitted, setRequestSubmitted] = useState(false);
   const [requestMessage, setRequestMessage] = useState('');
@@ -53,27 +52,26 @@ export function DisclaimerModal({ isOpen, onClose }: DisclaimerModalProps) {
     e.preventDefault();
     const token = inviteToken.trim();
     if (!token) {
-      setTokenError('Enter your invite token.');
+      setTokenError('Enter your claim token.');
       return;
     }
-    router.push(`/demo/invite/${encodeURIComponent(token)}`);
+    router.push(`/demo/claim/${encodeURIComponent(token)}`);
   };
 
   const handlePathB = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reqName.trim() || !reqEmail.trim()) return;
 
     setIsRequesting(true);
     try {
       const res = await fetch('/api/access-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: reqName, email: reqEmail }),
+        body: JSON.stringify({ note: reqNote }),
       });
       const data = await res.json();
       if (data.success) {
         setRequestSubmitted(true);
-        setRequestMessage(data.message || "We'll email you a login once approved.");
+        setRequestMessage(data.message || "Thanks — we'll reach out with your access details.");
       } else {
         setRequestMessage(data.error || 'Request failed. Try again.');
       }
@@ -224,7 +222,7 @@ export function DisclaimerModal({ isOpen, onClose }: DisclaimerModalProps) {
                             setInviteToken(e.target.value);
                             setTokenError('');
                           }}
-                          placeholder="DEMO-INVITE-2026"
+                          placeholder="Your invite token"
                           className="w-full text-xs px-3 py-2 rounded-xl border border-border bg-surface-2 text-text focus:outline-none focus:ring-2 focus:ring-teal font-mono uppercase"
                         />
                         {tokenError && <p className="text-[10px] text-coral mt-1">{tokenError}</p>}
@@ -238,9 +236,6 @@ export function DisclaimerModal({ isOpen, onClose }: DisclaimerModalProps) {
                     </form>
                   </div>
 
-                  <p className="text-[10px] text-muted/70 mt-3 pt-3 border-t border-border">
-                    Test code: <code className="text-text font-mono">DEMO-INVITE-2026</code>
-                  </p>
                 </div>
 
                 {/* Path B: Request Access */}
@@ -256,7 +251,7 @@ export function DisclaimerModal({ isOpen, onClose }: DisclaimerModalProps) {
                       </span>
                     </div>
                     <p className="text-[11px] text-muted mt-1 mb-3">
-                      Submit details for manual operator review.
+                      Request operator review. No name or email required.
                     </p>
 
                     {requestSubmitted ? (
@@ -269,20 +264,12 @@ export function DisclaimerModal({ isOpen, onClose }: DisclaimerModalProps) {
                       </div>
                     ) : (
                       <form onSubmit={handlePathB} className="space-y-2">
-                        <input
-                          type="text"
-                          required
-                          value={reqName}
-                          onChange={(e) => setReqName(e.target.value)}
-                          placeholder="Your Name"
-                          className="w-full text-xs px-3 py-2 rounded-xl border border-border bg-surface-2 text-text focus:outline-none focus:ring-2 focus:ring-teal"
-                        />
-                        <input
-                          type="email"
-                          required
-                          value={reqEmail}
-                          onChange={(e) => setReqEmail(e.target.value)}
-                          placeholder="name@organization.com"
+                        <textarea
+                          rows={2}
+                          maxLength={200}
+                          value={reqNote}
+                          onChange={(e) => setReqNote(e.target.value)}
+                          placeholder="Anything you'd like the operator to know — optional, no personal details needed"
                           className="w-full text-xs px-3 py-2 rounded-xl border border-border bg-surface-2 text-text focus:outline-none focus:ring-2 focus:ring-teal"
                         />
                         <button
@@ -290,7 +277,7 @@ export function DisclaimerModal({ isOpen, onClose }: DisclaimerModalProps) {
                           disabled={isRequesting}
                           className="w-full py-2 px-3 rounded-xl border border-border text-text hover:bg-surface-2 text-xs font-heading font-semibold transition-colors flex items-center justify-center gap-1.5"
                         >
-                          {isRequesting ? 'Submitting...' : 'Request Invitation'}
+                          {isRequesting ? 'Submitting...' : 'Request access'}
                         </button>
                       </form>
                     )}

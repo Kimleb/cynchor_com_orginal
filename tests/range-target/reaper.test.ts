@@ -23,13 +23,13 @@ after(async () => {
   for (const n of left.networks) await dock.removeNetwork(n).catch(() => {});
 });
 function seedSession(): string {
-  const db = dbm.getDb();
+  const db = dbm.openLocalDatabase();
   const id = `reap_${Date.now()}`;
   const now = new Date().toISOString();
   db.prepare("INSERT INTO match_sessions (id, mode, status, created_at) VALUES (?, 'RANGE', 'ACTIVE', ?)").run(id, now);
   return id;
 }
-const age = (rowId: string) => dbm.getDb().prepare('UPDATE range_target_matches SET started_at = ? WHERE id = ?').run(new Date(Date.now() - 60_000).toISOString(), rowId);
+const age = (rowId: string) => dbm.openLocalDatabase().prepare('UPDATE range_target_matches SET started_at = ? WHERE id = ?').run(new Date(Date.now() - 60_000).toISOString(), rowId);
 test('reaper ends an orphaned real match and removes its container and network', { timeout: 300_000 }, async () => {
   const sessionId = seedSession();
   const row = await orch.startMatch(sessionId);
@@ -42,7 +42,7 @@ test('reaper ends an orphaned real match and removes its container and network',
   assert.equal(r.matchesEnded, 1);
   const ended = dbm.getRangeMatch(sessionId);
   assert.equal(ended?.status, 'KILLED');
-  const actions = (dbm.getDb().prepare('SELECT action FROM audit_logs WHERE details LIKE ?').all(`range match ${row.id}%`) as Array<{ action: string }>).map((a) => a.action);
+  const actions = (dbm.openLocalDatabase().prepare('SELECT action FROM audit_logs WHERE details LIKE ?').all(`range match ${row.id}%`) as Array<{ action: string }>).map((a) => a.action);
   assert.ok(actions.includes('RANGE_MATCH_KILLED'));
   assert.deepEqual(await dock.listByLabel(orch.RANGE_LABEL), { containers: [], networks: [] });
   assert.equal(orch.isLive(row.id), false, 'timers are cleared');

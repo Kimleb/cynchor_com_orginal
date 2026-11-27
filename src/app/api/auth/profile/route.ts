@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonObject } from '@/lib/request-json';
 import { getCurrentUser } from '@/lib/session';
 import { getDb } from '@/lib/db';
 
@@ -9,10 +10,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { role, experienceLevel } = await req.json();
+    const body = await readJsonObject(req);
+    if (!body) {
+      return NextResponse.json({ success: false, error: 'Expected a JSON object.' }, { status: 400 });
+    }
+    const { role, experienceLevel } = body;
 
     // Validate role
-    if (!['RED_TEAM', 'BLUE_TEAM', 'NET_SEC'].includes(role)) {
+    if (typeof role !== 'string' || !['RED_TEAM', 'BLUE_TEAM', 'NET_SEC'].includes(role)) {
       if (role === 'GRC') {
         return NextResponse.json(
           { success: false, error: 'GRC role is disabled and coming soon.' },
@@ -26,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate experience level
-    if (!['BEGINNER', 'INTERMEDIATE', 'EXPERT'].includes(experienceLevel)) {
+    if (typeof experienceLevel !== 'string' || !['BEGINNER', 'INTERMEDIATE', 'EXPERT'].includes(experienceLevel)) {
       return NextResponse.json(
         { success: false, error: 'Please select your experience level (Beginner, Intermediate, Expert).' },
         { status: 400 }
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
       WHERE id = ?
     `);
 
-    updateStmt.run(role, experienceLevel, user.id);
+    await updateStmt.run(role, experienceLevel, user.id);
 
     // ASSUMPTION (diagram gap): Profile Making has no outgoing arrow in the DFD.
     // On saving the profile, route the user to the Dashboard.

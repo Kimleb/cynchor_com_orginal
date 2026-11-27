@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/session';
+import { getZipiOperator } from '@/lib/zipi-session';
 import { stopMatch } from '@/lib/range-runtime/orchestrator';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user || !user.is_operator) {
+    const user = await getZipiOperator();
+    if (!user) {
       return NextResponse.json({ success: false, error: 'Forbidden: Operator privileges required' }, { status: 403 });
     }
     const body = (await req.json().catch(() => null)) ?? {};

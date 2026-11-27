@@ -1,6 +1,6 @@
 // Reaper: ENDS (never resumes) range matches this process no longer drives, and removes orphan labelled Docker objects.
 // Scorer and orchestrator state is in-process, so after a restart a match cannot be resumed faithfully.
-import { getDb, type RangeMatchRow } from '@/lib/db';
+import { openLocalDatabase as getDb, type RangeMatchRow } from '@/lib/db';
 import { RANGE_LABEL, isLive, reapMatch } from './orchestrator';
 import { reconcileEndedMatches } from './scorer';
 import * as docker from './dockerClient';

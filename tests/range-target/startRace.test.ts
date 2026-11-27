@@ -21,10 +21,10 @@ after(async () => {
 });
 test('concurrent startMatch for one session starts exactly one target', { timeout: 300_000 }, async () => {
   const id = `race_${Date.now()}`;
-  dbm.getDb().prepare("INSERT INTO match_sessions (id, mode, status, created_at) VALUES (?, 'RANGE', 'ACTIVE', ?)").run(id, new Date().toISOString());
+  dbm.openLocalDatabase().prepare("INSERT INTO match_sessions (id, mode, status, created_at) VALUES (?, 'RANGE', 'ACTIVE', ?)").run(id, new Date().toISOString());
   const results = await Promise.allSettled([orch.startMatch(id), orch.startMatch(id)]);
   assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1, 'exactly one start wins');
-  const rows = dbm.getDb().prepare("SELECT status FROM range_target_matches WHERE match_session_id = ? AND status IN ('STARTING','RUNNING')").all(id);
+  const rows = dbm.openLocalDatabase().prepare("SELECT status FROM range_target_matches WHERE match_session_id = ? AND status IN ('STARTING','RUNNING')").all(id);
   assert.equal(rows.length, 1, 'one active row');
   assert.equal((await dock.listByLabel(orch.RANGE_LABEL)).containers.length, 1, 'one container');
   await orch.stopMatch(id);

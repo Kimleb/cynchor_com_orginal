@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonObject } from '@/lib/request-json';
 import { getCurrentUser, checkRateLimit } from '@/lib/session';
 import { getDb, endMatch } from '@/lib/db';
 
@@ -12,9 +13,12 @@ export async function POST(req: NextRequest) {
     if (rl.allowed === false) {
       return NextResponse.json({ success: false, error: 'Too many requests. Please try again later.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter || 60) } });
     }
-    const body = await req.json().catch(() => ({}));
-    const sessionId = String(body.sessionId ?? '');
-    const member = getDb().prepare(`
+    const body = await readJsonObject(req);
+    if (!body) {
+      return NextResponse.json({ success: false, error: 'Expected a JSON object.' }, { status: 400 });
+    }
+    const sessionId = typeof body.sessionId === 'string' ? body.sessionId : '';
+    const member = await getDb().prepare(`
       SELECT ms.id AS id FROM match_sessions ms
       JOIN team_members tm ON (tm.team_id = ms.red_team_id OR tm.team_id = ms.blue_team_id)
       WHERE ms.id = ? AND ms.status = 'ACTIVE' AND tm.user_id = ? LIMIT 1
@@ -22,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (member === undefined) {
       return NextResponse.json({ success: false, error: 'No active match found for this account.' }, { status: 404 });
     }
-    endMatch(sessionId);
+    await endMatch(sessionId);
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     console.error(err);

@@ -20,7 +20,7 @@ export const PRODUCT_CONTENT = {
     headline: 'Practice the attack. Prove the defense.',
     subtitle: 'Live, adversarial red-vs-blue cyber range training engineered for real-time skill development in safe synthetic environments.',
     primaryCta: 'Test Our Product',
-    primaryHref: '/demo/login',
+    primaryHref: '/demo/access',
     secondaryCta: 'Request a pilot',
     secondaryHref: '#pilot-form',
   },
@@ -104,7 +104,7 @@ export const PRODUCT_CONTENT = {
     v1: {
       title: 'Live V1 Range (Current Production)',
       badge: 'Live in V1',
-      description: 'Proxmox-based on-premise hypervisor infrastructure running dedicated, isolated virtual machines with synthetic datasets only.',
+      description: 'Cynchor’s on-premises range uses isolated virtual machines and synthetic datasets.',
       points: [
         'Isolated private bridge networking with zero production route peering.',
         'All entities, credentials, and email records restricted to synthetic domain fintechcorp.local.',
@@ -131,7 +131,7 @@ export const PRODUCT_CONTENT = {
       badge: 'Live in V1',
       badgeType: 'teal',
       items: [
-        'Proxmox VE isolated training range',
+        'Cynchor isolated training range',
         'Synthetic directory & email simulation (fintechcorp.local)',
         'Red vs Blue deterministic battle scenarios',
         'Triage workstation mini-game with 6-axis skill radar',

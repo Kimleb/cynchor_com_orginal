@@ -7,7 +7,7 @@ import {
   getActiveRangeMatch,
   updateRangeMatch,
   endRangeMatch,
-  recordAuditLog,
+  recordLocalAuditLog as recordAuditLog,
   type RangeMatchRow,
 } from '@/lib/db';
 

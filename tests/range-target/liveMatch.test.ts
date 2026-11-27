@@ -27,7 +27,7 @@ after(async () => {
   for (const n of left.networks) await dock.removeNetwork(n).catch(() => {});
 });
 function seedTeam(side: 'RED' | 'BLUE') {
-  const db = dbm.getDb();
+  const db = dbm.openLocalDatabase();
   const id = `live_${side}_${Date.now()}`;
   const now = new Date().toISOString();
   db.prepare("INSERT INTO teams (id, name, side, leader_id, is_complete, status, created_at) VALUES (?, ?, ?, 'x', 1, 'RECRUITING', ?)").run(id, id, side, now);
@@ -48,7 +48,7 @@ const waitHealthy = async (id: string) => {
   throw new Error('target did not come back after patch');
 };
 test('a real match runs from queue pairing to boss-exploit end and leaves nothing behind', { timeout: 600_000 }, async () => {
-  dbm.getDb().prepare("DELETE FROM matchmaking_queue WHERE status = 'WAITING'").run();
+  dbm.openLocalDatabase().prepare("DELETE FROM matchmaking_queue WHERE status = 'WAITING'").run();
   const red = seedTeam('RED');
   const blue = seedTeam('BLUE');
   assert.equal(lobby.joinRangeQueue(red.users[0], red.id, 2).kind, 'queued');
@@ -101,7 +101,7 @@ test('a real match runs from queue pairing to boss-exploit end and leaves nothin
     assert.deepEqual(await scorer.scoreTick(sessionId), { status: 'ended', reason: 'vault-zero' });
     assert.equal(dbm.getRangeMatch(sessionId)?.vault_balance_cents, 0);
     assert.equal(dbm.getRangeMatch(sessionId)?.status, 'ENDED');
-    const db = dbm.getDb();
+    const db = dbm.openLocalDatabase();
     assert.equal((db.prepare('SELECT status AS s FROM match_sessions WHERE id = ?').get(sessionId) as { s: string }).s, 'ENDED');
     assert.equal((db.prepare('SELECT status AS s FROM teams WHERE id = ?').get(red.id) as { s: string }).s, 'RECRUITING');
     const summary = lobby.getRangeEvents(sessionId, 'SPECTATOR', 0).find((e) => e.action === 'RANGE_MATCH_ENDED');

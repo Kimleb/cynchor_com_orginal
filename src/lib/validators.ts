@@ -1,12 +1,17 @@
 import { z } from 'zod';
 
+export const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, { message: 'Username must be at least 3 characters' })
+  .max(20, { message: 'Username must be at most 20 characters' })
+  .regex(/^[a-z0-9_-]+$/, {
+    message: 'Username may only contain lowercase letters, numbers, hyphens, and underscores',
+  });
+
 export const loginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email({ message: 'A valid email address is required' })
-    .max(255, { message: 'Email address exceeds maximum length' }),
+  username: usernameSchema,
   password: z
     .string()
     .min(8, { message: 'Password must be at least 8 characters' })
@@ -14,18 +19,12 @@ export const loginSchema = z.object({
 });
 
 export const accessRequestSchema = z.object({
-  name: z
+  note: z
     .string()
     .trim()
-    .min(2, { message: 'Name must be at least 2 characters' })
-    .max(100, { message: 'Name exceeds maximum length' })
-    .regex(/^[a-zA-Z0-9\s\-'.]+$/, { message: 'Name contains invalid characters' }),
-  email: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .email({ message: 'A valid email address is required' })
-    .max(255, { message: 'Email address exceeds maximum length' }),
+    .max(200, { message: 'Note must be at most 200 characters' })
+    .optional()
+    .default(''),
   source: z.enum(['demo', 'pilot']).default('demo').optional(),
   website: z.string().max(0, { message: 'Bot detected' }).optional(),
 });
@@ -34,10 +33,23 @@ export const inviteTokenSchema = z.object({
   token: z
     .string()
     .trim()
-    .min(8, { message: 'Invite token must be at least 8 characters' })
-    .max(128, { message: 'Invite token exceeds maximum length' })
-    .regex(/^[a-zA-Z0-9\-_]+$/, { message: 'Invite token contains invalid characters' }),
-  email: z.string().trim().toLowerCase().email().optional(),
+    .min(8, { message: 'Claim token must be at least 8 characters' })
+    .max(128, { message: 'Claim token exceeds maximum length' })
+    .regex(/^[a-zA-Z0-9\-_]+$/, { message: 'Claim token contains invalid characters' }),
+});
+
+export const claimAccountSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .min(8, { message: 'Claim token must be at least 8 characters' })
+    .max(128, { message: 'Claim token exceeds maximum length' })
+    .regex(/^[a-zA-Z0-9\-_]+$/, { message: 'Claim token contains invalid characters' }),
+  username: usernameSchema.optional(),
+  password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters' })
+    .max(128, { message: 'Password exceeds maximum length' }),
 });
 
 export const teamCreateSchema = z.object({

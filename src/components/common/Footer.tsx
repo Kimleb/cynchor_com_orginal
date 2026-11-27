@@ -25,7 +25,7 @@ export function Footer() {
             </div>
 
             <p className="text-xs text-muted leading-relaxed max-w-sm pt-1">
-              Adversarial cybersecurity training platform. Live Proxmox-based lab available today;
+              Adversarial cybersecurity training platform. Invite-only Cynchor training range;
               scalable cloud-hosted range previewed for upcoming release.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
@@ -100,7 +100,7 @@ export function Footer() {
               </li>
               <li>
                 <span className="text-[11px] text-muted/70 block font-mono">
-                  Proxmox SDN Isolation
+                  Cynchor Network Isolation
                 </span>
               </li>
               <li>
@@ -138,7 +138,7 @@ export function Footer() {
           <div className="flex items-center gap-4 text-[11px] font-mono">
             <span>Domain: <code className="text-text">fintechcorp.local</code></span>
             <span className="text-border">|</span>
-            <span>Hypervisor: <code className="text-teal">Proxmox VE 8.x</code></span>
+            <span>Environment: <code className="text-teal">Cynchor Range</code></span>
           </div>
         </div>
       </div>

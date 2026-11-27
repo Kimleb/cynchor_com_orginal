@@ -1,7 +1,7 @@
 // DB-level leaderboard filter tests (room = match id, level = exploit id). No Docker.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getDb } from '../src/lib/db';
+import { openLocalDatabase as getDb } from '../src/lib/db';
 import { recordRangeEvent } from '../src/lib/range-runtime/lobby';
 import { buildLeaderboard } from '../src/lib/range-runtime/reports';
 const tag = `lb${Date.now()}`;
@@ -12,7 +12,7 @@ function seedTeam(side: 'RED' | 'BLUE') {
   const now = new Date().toISOString();
   db.prepare("INSERT INTO teams (id, name, side, leader_id, is_complete, status, created_at) VALUES (?, ?, ?, 'x', 1, 'RECRUITING', ?)").run(id, id, side, now);
   const uid = `u_${id}`;
-  db.prepare("INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, 'x', ?, ?)").run(uid, `${uid}@example.test`, `P_${id}`, now);
+  db.prepare("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, 'x', ?)").run(uid, `P_${id}`, now);
   return { id, uid, name: `P_${id}` };
 }
 function endedMatch(winner: 'RED' | 'BLUE', exploits: string[]) {

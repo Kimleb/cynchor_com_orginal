@@ -1,0 +1,41 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { request } from './request';
+import { getDb } from '../../src/lib/db';
+import { deliverProductMail } from '../../src/lib/product-access-mail';
+import { POST } from '../../src/app/api/product-access/route';
+
+test('product access sends the details to the operator and addresses replies to the applicant', async t => {
+  const input = { name: 'Test Applicant', email: 'test@example.invalid', message: 'Team practice', requestId: randomUUID() };
+  process.env.RESEND_API_KEY = 'test-key';
+  process.env.ACCESS_REQUEST_FROM = 'requests@example.invalid';
+  const send = t.mock.method(globalThis, 'fetch', async (_url: string, init: RequestInit) => {
+    const mail = JSON.parse(String(init.body));
+    assert.deepEqual(mail.to, ['contact@cynchor.com']);
+    assert.equal(mail.reply_to, input.email);
+    assert.equal(mail.text, 'Name: Test Applicant\nEmail: test@example.invalid\n\nTeam practice');
+    return Response.json({ id: 'test-delivery' });
+  });
+  assert.equal((await request(POST, { ...input, email: 'invalid' })).response.status, 400);
+  assert.equal(send.mock.callCount(), 0);
+  assert.equal((await request(POST, input)).response.status, 200);
+  assert.equal(send.mock.callCount(), 1);
+  assert.equal((await request(POST, input)).response.status, 200);
+  assert.equal(send.mock.callCount(), 1);
+  delete process.env.RESEND_API_KEY;
+  const pending = { ...input, requestId: randomUUID() };
+  assert.equal((await request(POST, pending)).response.status, 200);
+  const db = getDb();
+  const state = async () => (await db.prepare('SELECT accepted_at FROM product_access_mail WHERE request_id = ?').get(pending.requestId));
+  assert.equal((await state())?.accepted_at, null);
+  process.env.RESEND_API_KEY = 'test-key';
+  send.mock.mockImplementation(async () => new Response(null, { status: 503 }));
+  await deliverProductMail(pending.requestId);
+  assert.equal((await state())?.accepted_at, null);
+  await db.prepare('UPDATE product_access_mail SET next_attempt = 0 WHERE request_id = ?').run(pending.requestId);
+  send.mock.mockImplementation(async () => Response.json({ id: 'retried' }));
+  await deliverProductMail();
+  assert.ok((await state())?.accepted_at);
+  assert.equal(send.mock.callCount(), 3);
+});

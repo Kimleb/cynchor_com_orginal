@@ -1,7 +1,7 @@
 // DB-level reaper tests with stubbed Docker deps. The reaper ENDS stale matches, it never resumes them.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getDb, createRangeMatch, updateRangeMatch, getRangeMatch, endRangeMatch } from '../src/lib/db';
+import { openLocalDatabase as getDb, createRangeMatch, updateRangeMatch, getRangeMatch, endRangeMatch } from '../src/lib/db';
 import { joinRangeQueue, getRangeEvents } from '../src/lib/range-runtime/lobby';
 import { reapOrphans, REAPER_GRACE_MS, type ReaperDeps } from '../src/lib/range-runtime/reaper';
 import { reconcileEndedMatches } from '../src/lib/range-runtime/scorer';
@@ -14,10 +14,10 @@ function seedTeam(side: 'RED' | 'BLUE') {
   const now = new Date().toISOString();
   db.prepare("INSERT INTO teams (id, name, side, leader_id, is_complete, status, created_at) VALUES (?, ?, ?, 'x', 1, 'RECRUITING', ?)").run(id, id, side, now);
   const uid = `u_${id}`;
-  db.prepare("INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, 'x', ?, ?)").run(uid, `${uid}@example.test`, 'P', now);
+  db.prepare("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, 'x', ?)").run(uid, uid, now);
   db.prepare('INSERT INTO team_members (id, team_id, user_id, joined_at) VALUES (?, ?, ?, ?)').run(`tm_${uid}`, id, uid, now);
   const uid2 = `${uid}b`;
-  db.prepare("INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, 'x', ?, ?)").run(uid2, `${uid2}@example.test`, 'P2', now);
+  db.prepare("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, 'x', ?)").run(uid2, uid2, now);
   db.prepare('INSERT INTO team_members (id, team_id, user_id, joined_at) VALUES (?, ?, ?, ?)').run(`tm_${uid2}`, id, uid2, now);
   return { id, uid };
 }

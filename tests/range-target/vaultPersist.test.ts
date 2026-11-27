@@ -24,7 +24,7 @@ after(async () => {
 });
 test('vault stays swept across a patch restart and hardening is intact', { timeout: 300_000 }, async () => {
   const sessionId = `vp_${Date.now()}`;
-  dbm.getDb().prepare("INSERT INTO match_sessions (id, mode, status, created_at) VALUES (?, 'RANGE', 'ACTIVE', ?)").run(sessionId, new Date().toISOString());
+  dbm.openLocalDatabase().prepare("INSERT INTO match_sessions (id, mode, status, created_at) VALUES (?, 'RANGE', 'ACTIVE', ?)").run(sessionId, new Date().toISOString());
   const row = await orch.startMatch(sessionId);
   const cid = row.container_id!;
   try {

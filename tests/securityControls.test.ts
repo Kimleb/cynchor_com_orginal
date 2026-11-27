@@ -47,37 +47,37 @@ test('Security Controls: rate limiting triggers exponential lockout backoff', ()
   resetRateLimit(testKey);
 });
 
-test('Security Controls: 256-bit invite tokens are stored hashed and single-use', () => {
-  const email = `candidate_${Date.now()}@fintechcorp.local`;
-  const { plainToken, expiresAt } = createSecureInvite(email, 7);
+test('Security Controls: 256-bit invite tokens are stored hashed and single-use', async () => {
+  const username = `candidate_${Date.now().toString().slice(-6)}`;
+  const { plainToken } = await createSecureInvite({ username, purpose: 'CLAIM' });
 
   // Token has high entropy prefix + 64 hex characters (32 bytes = 256-bit)
   assert.ok(plainToken.startsWith('CYN-'));
   assert.ok(plainToken.length >= 68);
 
   // First consumption succeeds
-  const firstConsume = verifyAndConsumeInvite(plainToken);
+  const firstConsume = await verifyAndConsumeInvite(plainToken);
   assert.equal(firstConsume.valid, true);
-  assert.equal(firstConsume.email, email);
+  assert.equal(firstConsume.username, username);
 
   // Replay attempt fails (single-use enforcement)
-  const replayConsume = verifyAndConsumeInvite(plainToken);
+  const replayConsume = await verifyAndConsumeInvite(plainToken);
   assert.equal(replayConsume.valid, false);
   assert.match(replayConsume.error || '', /already been consumed/i);
 });
 
-test('Security Controls: append-only audit log records actions with IP hashes', () => {
+test('Security Controls: append-only audit log records actions with IP hashes', async () => {
   const testAction = `UNIT_TEST_ACTION_${Date.now()}`;
   const testIp = '198.51.100.42';
 
-  recordAuditLog({
+  await recordAuditLog({
     userId: 'test_operator_001',
     action: testAction,
     details: 'Integration test audit assertion',
     ip: testIp,
   });
 
-  const logs = getAuditLogs(20) as Array<{
+  const logs = (await getAuditLogs(20)) as Array<{
     id: string;
     user_id: string;
     action: string;

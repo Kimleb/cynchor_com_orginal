@@ -1,9 +1,10 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
-import { getDb, verifyPassword, recordAuditLog } from './db';
+import { getDb, hashToken, recordAuditLog } from './db';
 import { User } from '@/types';
 
 function getSessionSecret(): string { const s = process.env.SESSION_SECRET; if (!s || s.length < 32) throw new Error("SESSION_SECRET (min 32 chars) must be set"); return s; }
+const SESSION_SECONDS = 7 * 24 * 60 * 60;
 const COOKIE_NAME = 'cynchor_session';
 
 // In-memory sliding window rate limiter with exponential lockout backoff
@@ -40,9 +41,9 @@ export function checkRateLimit(key: string, maxAttempts = 5, windowSeconds = 60)
     // 5-minute lockout backoff
     const lockoutSeconds = 300;
     current.lockoutUntil = now + lockoutSeconds * 1000;
-    recordAuditLog({
+    void recordAuditLog({
       action: 'RATE_LIMIT_LOCKOUT',
-      details: `Lockout triggered for ${key} after ${current.attempts} attempts (${lockoutSeconds}s lockout)`,
+      details: `Lockout triggered after ${current.attempts} attempts (${lockoutSeconds}s lockout)`,
     });
     return { allowed: false, retryAfter: lockoutSeconds };
   }
@@ -61,7 +62,7 @@ export function createSignedSessionToken(userId: string, version = 0): string {
     userId,
     ver: version,
     nonce: sessionNonce,
-    exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    exp: Date.now() + SESSION_SECONDS * 1000,
   });
   const b64Payload = Buffer.from(payload).toString('base64url');
   const signature = crypto.createHmac("sha256", getSessionSecret()).update(b64Payload).digest('base64url');
@@ -99,8 +100,11 @@ export async function getCurrentUser(): Promise<User | null> {
   if (!userId) return null;
 
   const db = getDb();
-  const stmt = db.prepare('SELECT id, email, name, role, experience_level, is_profile_completed, is_operator, created_at, session_version FROM users WHERE id = ?');
-  const row = stmt.get(userId) as (User & { session_version: number }) | undefined;
+  const stmt = db.prepare(`SELECT id, username, role, experience_level, is_profile_completed, is_operator, created_at, session_version FROM users
+    WHERE id = ? AND EXISTS (
+      SELECT 1 FROM auth_sessions WHERE token_hash = ? AND user_id = users.id AND expires_at > ?
+    )`);
+  const row = (await stmt.get(userId, hashToken(sessionCookie), Date.now())) as (User & { session_version: number }) | undefined;
   if (row === undefined) return null;
   const sameVersion = Number(row.session_version ?? 0) === readTokenVersion(sessionCookie);
   if (sameVersion === false) return null;
@@ -109,9 +113,13 @@ export async function getCurrentUser(): Promise<User | null> {
   return user as User;
 }
 
-export function setSessionCookie(userId: string) {
-  const verRow = getDb().prepare('SELECT session_version AS v FROM users WHERE id = ?').get(userId) as { v: number } | undefined;
+export async function setSessionCookie(userId: string) {
+  const verRow = (await getDb().prepare('SELECT session_version AS v FROM users WHERE id = ?').get(userId)) as { v: number } | undefined;
   const token = createSignedSessionToken(userId, Number(verRow?.v ?? 0));
+  const db = getDb();
+  await db.prepare('DELETE FROM auth_sessions WHERE expires_at <= ?').run(Date.now());
+  await db.prepare('INSERT INTO auth_sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)')
+    .run(hashToken(token), userId, Date.now() + SESSION_SECONDS * 1000);
   cookies().set({
     name: COOKIE_NAME,
     value: token,
@@ -119,7 +127,7 @@ export function setSessionCookie(userId: string) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: SESSION_SECONDS,
   });
 }
 
@@ -144,6 +152,10 @@ function readTokenVersion(token: string): number {
   }
 }
 
-export function revokeUserSessions(userId: string) {
-  getDb().prepare('UPDATE users SET session_version = session_version + 1 WHERE id = ?').run(userId);
+export async function revokeUserSessions(userId: string) {
+  const db = getDb();
+  await db.transaction(async () => {
+    await db.prepare('UPDATE users SET session_version = session_version + 1 WHERE id = ?').run(userId);
+    await db.prepare('DELETE FROM auth_sessions WHERE user_id = ?').run(userId);
+  });
 }

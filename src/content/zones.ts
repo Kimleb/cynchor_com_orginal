@@ -103,7 +103,7 @@ export const ZONES_CONTENT: ZoneItem[] = [
   },
   {
     id: 'sdn-vlans',
-    name: 'Proxmox SDN Per-Student VLANs',
+    name: 'Cynchor Per-Student VLANs',
     subnet: 'SDN EVPN / VxLAN Overlay',
     role: 'Hardware hypervisor micro-segmentation per student training pod.',
     controls: [
@@ -112,7 +112,7 @@ export const ZONES_CONTENT: ZoneItem[] = [
     ],
     blocks: ['Lateral student cross-talk', 'Cross-pod packet inspection'],
     verified: false,
-    notes: 'OWNER-TODO: Verify automated Proxmox EVPN VxLAN tenant provisioning in multi-node cluster.',
+    notes: 'OWNER-TODO: Verify automated Cynchor EVPN VxLAN tenant provisioning in multi-node cluster.',
   },
 ];
 

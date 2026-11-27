@@ -1,6 +1,6 @@
 // Scores live matches from real HTTP probes against each match's container. Nothing here fakes a value:
 // the vault balance is read off the target and exploit status comes from the shared exploit checks.
-import { getDb, getActiveRangeMatch, updateRangeMatch, getRangeMatch } from '@/lib/db';
+import { openLocalDatabase as getDb, getActiveRangeMatch, updateRangeMatch, getRangeMatch } from '@/lib/db';
 import { stopMatch } from './orchestrator';
 import { ensureReaperRunning } from './reaper';
 import { VAULT_START_CENTS } from './reports';

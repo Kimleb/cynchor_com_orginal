@@ -164,7 +164,7 @@ function MatchmakingContent() {
                 Opposing Squad Identified
               </h2>
               <p className="text-xs text-muted">
-                Initializing Proxmox virtual environment...
+                Preparing the Cynchor training environment…
               </p>
             </div>
 
