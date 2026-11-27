@@ -4,8 +4,7 @@ export type TeamSide = 'RED' | 'BLUE';
 
 export interface User {
   id: string;
-  email: string;
-  name: string;
+  username: string;
   role: UserRole | null;
   experience_level: ExperienceLevel | null;
   is_profile_completed: number; // 0 or 1
@@ -15,18 +14,20 @@ export interface User {
 
 export interface AccessRequest {
   id: string;
-  name: string;
-  email: string;
+  note?: string | null;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  source?: string;
   created_at: string;
   approved_at?: string;
-  generated_invite_token?: string;
+  claim_token_hash?: string;
 }
 
 export interface Invite {
   id: string;
   token: string;
-  email: string;
+  username?: string | null;
+  purpose?: 'CLAIM' | 'RESET';
+  target_user_id?: string | null;
   is_used: number;
   used_at?: string;
   expires_at: string;
@@ -73,6 +74,5 @@ export interface LabLaunchResult {
   adapterMessage: string;
   targetDomain: string;
   endpointUrl: string | null;
-  isLiveProxmoxConnected: false;
+  isLiveLabConnected: false;
 }
-

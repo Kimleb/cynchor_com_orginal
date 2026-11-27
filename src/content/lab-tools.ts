@@ -28,8 +28,8 @@ export const LAB_TOOLS: LabToolItem[] = [
     verified: true,
   },
   {
-    id: 'proxmox-ve',
-    name: 'Proxmox VE',
+    id: 'cynchor-range',
+    name: 'Cynchor Range',
     role: 'Virtualization hypervisor powering isolated lab node environments.',
     status: 'live-v1',
     verified: true,
@@ -65,7 +65,7 @@ export const LAB_TOOLS: LabToolItem[] = [
     role: 'Deep packet inspection, network protocol analysis, and connection stream parsing.',
     status: 'planned-v2',
     verified: false,
-    notes: 'OWNER-TODO: Benchmark Zeek sensor packet loss on high-throughput Proxmox bridges.',
+    notes: 'OWNER-TODO: Benchmark Zeek sensor packet loss on high-throughput Cynchor range bridges.',
   },
   {
     id: 'suricata',

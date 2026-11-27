@@ -17,8 +17,7 @@ import {
 
 interface RosterMember {
   id: string;
-  name: string;
-  email: string;
+  username: string;
   role: string;
   experience_level: string;
 }
@@ -37,7 +36,7 @@ export default function TeamPage() {
 
   const [currentUser, setCurrentUser] = useState<{
     id: string;
-    name: string;
+    username: string;
     role: string;
   } | null>(null);
 
@@ -414,7 +413,7 @@ export default function TeamPage() {
                             </span>
                             <div>
                               <div className="font-heading font-semibold text-xs text-text flex items-center gap-1.5">
-                                <span>{member.name}</span>
+                                <span>@{member.username}</span>
                                 {member.id === currentUser?.id && (
                                   <span className="text-[9px] font-mono text-teal bg-teal/15 px-1 rounded">
                                     YOU

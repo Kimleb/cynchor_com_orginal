@@ -93,7 +93,7 @@ export const TEAMS_CONTENT = {
       badge: 'Infrastructure',
       badgeType: 'neutral',
       description: 'Design defense-in-depth boundary controls, configure mail gateway threat policies, and inspect TLS handshakes across DMZ perimeters.',
-      skills: ['Proxmox SDN Policies', 'Firewall Rule Tuning', 'DNS Sinkholing', 'VLAN Micro-segmentation'],
+      skills: ['Cynchor Network Isolation Policies', 'Firewall Rule Tuning', 'DNS Sinkholing', 'VLAN Micro-segmentation'],
     },
     {
       id: 'grc',
@@ -107,9 +107,9 @@ export const TEAMS_CONTENT = {
   ] as RoleLane[],
   cta: {
     headline: 'Experience live adversarial operations today',
-    sub: 'V1 Proxmox-based cyber range is live for invite-only operator sessions.',
+    sub: 'Cynchor V1 is available by invitation.',
     buttonLabel: 'Test Our Product',
-    href: '/demo/login',
+    href: '/demo/access',
   },
 };
 

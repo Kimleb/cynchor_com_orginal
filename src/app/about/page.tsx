@@ -55,7 +55,7 @@ export default function AboutPage() {
               to provide authentic environments where operators face real adversarial tactics.
             </p>
             <p className="text-muted leading-relaxed">
-              From our live Proxmox-based on-premise lab (V1) to our upcoming cloud-hosted platform (V2),
+              From our on-premises Cynchor training range (V1) to our upcoming cloud-hosted platform (V2),
               every component replicates authentic network topologies without risking production assets.
             </p>
           </div>

@@ -194,7 +194,7 @@ export default function ProductPage() {
                   </span>
                 </div>
                 <div className="text-[11px] text-muted font-sans">
-                  fintechcorp.local • Proxmox Isolated Bridge
+                  fintechcorp.local • Cynchor Isolated Bridge
                 </div>
               </div>
             </div>
@@ -455,7 +455,7 @@ export default function ProductPage() {
             </h2>
             <Reveal variant="fade-up" delay={80}>
               <p className="text-xs sm:text-sm text-muted">
-                Live components active in the Proxmox virtual environment. Text-only verified specifications.
+                Components of the Cynchor training environment.
               </p>
             </Reveal>
           </div>
@@ -643,7 +643,7 @@ export default function ProductPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/demo/architecture" className="px-3.5 py-2 rounded-xl bg-[#14141B] border border-border text-teal hover:border-teal flex items-center gap-1.5 transition-colors">
-              <span>Proxmox Architecture</span>
+              <span>Cynchor Range Architecture</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
             <Link href="/security" className="px-3.5 py-2 rounded-xl bg-[#14141B] border border-border text-teal hover:border-teal flex items-center gap-1.5 transition-colors">

@@ -11,8 +11,7 @@ export async function GET() {
     success: true,
     user: {
       id: user.id,
-      name: user.name,
-      email: user.email,
+      username: user.username,
       role: user.role,
       experience_level: user.experience_level,
       is_profile_completed: user.is_profile_completed,
@@ -20,4 +19,3 @@ export async function GET() {
     },
   });
 }
-

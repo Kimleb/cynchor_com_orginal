@@ -250,7 +250,7 @@ export function SegmentedNetworkDiagram({ className = '' }: { className?: string
         <rect x="20" y="325" width="860" height="24" rx="6" fill="#17171B" stroke="#26262C" strokeWidth="1" />
         <circle cx="35" cy="337" r="3" fill="#17ABA9" />
         <text x="45" y="341" fill="#A1A1AA" fontSize="9" fontFamily="monospace">
-          PROXMOX VE 8.x SDN • ISOLATED LINUX BRIDGES &amp; FIREWALL ACL POLICIES • ZERO PRODUCTION LEAKAGE
+          CYNCHOR RANGE NETWORK • ISOLATED LINUX BRIDGES &amp; FIREWALL ACL POLICIES • ZERO PRODUCTION LEAKAGE
         </text>
       </svg>
     </div>

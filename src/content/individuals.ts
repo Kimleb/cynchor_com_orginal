@@ -142,7 +142,7 @@ export const INDIVIDUALS_CONTENT = {
         from: 'IT Infrastructure Operations <it-notifications@fintechcorp.local>',
         to: 'engineering-all@fintechcorp.local',
         returnPath: 'it-notifications@fintechcorp.local',
-        subject: 'NOTICE: Planned Proxmox VE Cluster SDN Maintenance Sunday 02:00-04:00 UTC',
+        subject: 'NOTICE: Planned Cynchor Range Network Maintenance Sunday 02:00-04:00 UTC',
         date: 'Today at 08:24:55 UTC',
         spf: 'PASS',
         dkim: 'PASS',

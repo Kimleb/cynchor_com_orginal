@@ -4,8 +4,7 @@ import React, { useState } from 'react';
 import { Send, CheckCircle2, AlertCircle, Shield } from 'lucide-react';
 
 export function PilotRequestForm() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [note, setNote] = useState('');
   const [website, setWebsite] = useState(''); // Honeypot field
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -20,8 +19,7 @@ export function PilotRequestForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
+          note: note.trim(),
           source: 'pilot',
           website: website.trim(), // honeypot
         }),
@@ -61,9 +59,9 @@ export function PilotRequestForm() {
       {status === 'success' ? (
         <div className="p-6 rounded-xl bg-teal/10 border border-teal/30 text-teal space-y-2 text-center animate-in fade-in">
           <CheckCircle2 className="w-8 h-8 mx-auto" />
-          <h4 className="font-heading font-bold text-base text-text">Thanks, we'll email you.</h4>
+          <h4 className="font-heading font-bold text-base text-text">Thanks — we&apos;ll reach out with your access details.</h4>
           <p className="text-xs text-muted max-w-md mx-auto">
-            Your pilot request has been registered in the operator dispatch queue. We'll send an invite token to {email}.
+            Your pilot request has been registered in the operator dispatch queue. Zero personal details were stored.
           </p>
         </div>
       ) : (
@@ -80,36 +78,19 @@ export function PilotRequestForm() {
             Notice: Requests are rate-limited to 10 submissions per minute per IP to prevent automated queue abuse.
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="pilot-name" className="block text-[11px] font-mono text-muted uppercase tracking-wider mb-1">
-                Your Full Name *
-              </label>
-              <input
-                id="pilot-name"
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Dr. Jordan Miller"
-                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-border bg-[#14141A] text-text focus:outline-none focus:ring-2 focus:ring-teal"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="pilot-email" className="block text-[11px] font-mono text-muted uppercase tracking-wider mb-1">
-                Institutional / Work Email *
-              </label>
-              <input
-                id="pilot-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jmiller@university.edu"
-                className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-border bg-[#14141A] text-text focus:outline-none focus:ring-2 focus:ring-teal"
-              />
-            </div>
+          <div>
+            <label htmlFor="pilot-note" className="block text-[11px] font-mono text-muted uppercase tracking-wider mb-1">
+              Anything you&apos;d like the operator to know — optional, no personal details needed
+            </label>
+            <textarea
+              id="pilot-note"
+              rows={3}
+              maxLength={200}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g., Cohort size, preferred lab focus, or out-of-band handle (max 200 chars)"
+              className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-border bg-[#14141A] text-text focus:outline-none focus:ring-2 focus:ring-teal"
+            />
           </div>
 
           {/* Hidden Honeypot Field */}
@@ -128,7 +109,7 @@ export function PilotRequestForm() {
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <span className="text-[11px] text-muted font-mono">
-              Data minimization: Collects name &amp; email only. Zero advertising trackers.
+              Zero-PII: No name or email collected. Zero advertising trackers.
             </span>
             <button
               type="submit"

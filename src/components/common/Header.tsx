@@ -5,12 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Logo } from '../brand/Logo';
 import { Badge } from './Badge';
-import { DisclaimerModal } from '../disclaimer/DisclaimerModal';
-import { Menu, X, Terminal, ShieldCheck } from 'lucide-react';
+import { Menu, X, ShieldCheck } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
-  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -65,32 +63,25 @@ export function Header() {
           </div>
 
           {/* Desktop Right CTAs */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/demo/login"
-              className="text-xs font-heading font-medium text-muted hover:text-text px-3 py-1.5 rounded-xl border border-border hover:border-muted transition-colors flex items-center gap-1.5"
-            >
-              <Terminal className="w-3.5 h-3.5 text-teal" />
-              Portal Login
-            </Link>
-
-            <button
-              onClick={() => setIsDisclaimerOpen(true)}
+              href="/demo/access"
               className="text-xs font-heading font-semibold px-4 py-2 rounded-xl bg-teal text-bg hover:shadow-glow-teal transition-all flex items-center gap-1.5 focus:ring-2 focus:ring-teal focus:outline-none"
             >
               <ShieldCheck className="w-4 h-4" />
               Test Our Product
-            </button>
+            </Link>
           </div>
 
           {/* Mobile hamburger */}
           <div className="flex md:hidden items-center gap-2">
-            <button
-              onClick={() => setIsDisclaimerOpen(true)}
+            <Link
+              href="/demo/access"
+              onClick={() => setMobileMenuOpen(false)}
               className="text-[11px] font-heading font-semibold px-3 py-1.5 rounded-xl bg-teal text-bg shadow-sm"
             >
               Test Product
-            </button>
+            </Link>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-1.5 text-text rounded-lg hover:bg-surface-2"
@@ -129,14 +120,7 @@ export function Header() {
             </nav>
             <div className="pt-3 border-t border-border flex flex-col gap-2">
               <Link
-                href="/demo/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2 text-xs font-heading font-medium border border-border rounded-xl text-text hover:bg-surface-2"
-              >
-                V1 Demo Login
-              </Link>
-              <Link
-                href="/admin"
+                href="/zipi"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2 text-xs font-heading font-medium border border-border rounded-xl text-muted hover:text-text hover:bg-surface-2"
               >
@@ -147,11 +131,6 @@ export function Header() {
         )}
       </header>
 
-      {/* Mandatory Disclaimer Modal */}
-      <DisclaimerModal
-        isOpen={isDisclaimerOpen}
-        onClose={() => setIsDisclaimerOpen(false)}
-      />
     </>
   );
 }

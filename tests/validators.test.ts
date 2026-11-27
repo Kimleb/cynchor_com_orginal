@@ -2,45 +2,52 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   loginSchema,
+  usernameSchema,
   accessRequestSchema,
   inviteTokenSchema,
-  teamCreateSchema,
   sanitizeOutput,
 } from '../src/lib/validators';
 
-test('Validators: loginSchema validates credentials and rejects malformed inputs', () => {
+test('Validators: loginSchema validates username credentials and rejects malformed inputs', () => {
   const valid = loginSchema.safeParse({
-    email: 'operator@cynchor.local',
+    username: 'operator',
     password: 'ValidPassword123!',
   });
   assert.equal(valid.success, true);
 
-  const invalidEmail = loginSchema.safeParse({
-    email: 'not-an-email',
+  const invalidUsername = loginSchema.safeParse({
+    username: 'not@an#email',
     password: 'ValidPassword123!',
   });
-  assert.equal(invalidEmail.success, false);
+  assert.equal(invalidUsername.success, false);
 
   const shortPassword = loginSchema.safeParse({
-    email: 'operator@cynchor.local',
+    username: 'operator',
     password: 'short',
   });
   assert.equal(shortPassword.success, false);
 });
 
-test('Validators: accessRequestSchema enforces sanitized names and valid emails', () => {
+test('Validators: usernameSchema enforces lowercase 3-20 [a-z0-9_-] handles', () => {
+  assert.equal(usernameSchema.safeParse('cobalt_falcon-01').success, true);
+  assert.equal(usernameSchema.safeParse('ab').success, false);
+  assert.equal(usernameSchema.safeParse('a'.repeat(21)).success, false);
+  assert.equal(usernameSchema.safeParse('bad.handle').success, false);
+});
+
+test('Validators: accessRequestSchema enforces optional note <= 200 chars with no PII fields', () => {
   const valid = accessRequestSchema.safeParse({
-    name: 'Sarah Connor',
-    email: 'sarah.connor@fintechcorp.local',
+    note: 'Red team lab evaluation',
   });
   assert.equal(valid.success, true);
 
-  // Reject malicious script injection in name field
-  const xssAttempt = accessRequestSchema.safeParse({
-    name: '<script>alert(1)</script>',
-    email: 'sarah.connor@fintechcorp.local',
+  const emptyValid = accessRequestSchema.safeParse({});
+  assert.equal(emptyValid.success, true);
+
+  const tooLong = accessRequestSchema.safeParse({
+    note: 'x'.repeat(201),
   });
-  assert.equal(xssAttempt.success, false);
+  assert.equal(tooLong.success, false);
 });
 
 test('Validators: inviteTokenSchema verifies format and length', () => {
@@ -62,4 +69,3 @@ test('Validators: sanitizeOutput escapes HTML special characters', () => {
   assert.equal(sanitized.includes('&lt;img'), true);
   assert.equal(sanitized.includes('&amp;'), true);
 });
-

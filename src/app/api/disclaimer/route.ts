@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    stmt.run(id, acceptedAt, userIdentifier.slice(0, 200), hashIpAddress(ip), 'v1.1');
+    await stmt.run(id, acceptedAt, userIdentifier.slice(0, 200), hashIpAddress(ip), 'v1.1');
 
     return NextResponse.json({
       success: true,
