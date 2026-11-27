@@ -1,0 +1,14 @@
+{
+  "name": "fintech-range-target",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Intentionally vulnerable bank (fintechcorp.local) for the Cynchor Fintech Range. NEVER deploy outside an isolated range container.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "cd .. && npm run test:range-target"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

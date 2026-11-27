@@ -5,6 +5,15 @@ const isDev = process.env.NODE_ENV !== 'production';
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  if (process.env.CYNCHOR_DATABASE === 'postgres') {
+    if (path === '/api/range' || path.startsWith('/api/range/')) {
+      return NextResponse.json({ success: false, error: 'The local range runtime requires SQLite.' }, { status: 503 });
+    }
+    if (path === '/range' || path.startsWith('/range/')) {
+      return NextResponse.redirect(new URL('/demo/dashboard', request.url));
+    }
+  }
   // CSRF defense: block cross-site state-changing API requests
   if (request.nextUrl.pathname.startsWith('/api/') && UNSAFE_METHODS.has(request.method)) {
     const origin = request.headers.get('origin');

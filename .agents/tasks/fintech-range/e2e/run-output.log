@@ -1,0 +1,55 @@
+seeded
+(node:46571) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"success":true,"isNew":false,"redirectTo":"/demo/dashboard","user":{"id":"e2e_r
+{"success":true,"isNew":false,"redirectTo":"/demo/dashboard","user":{"id":"e2e_r
+{"success":true,"isNew":false,"redirectTo":"/demo/dashboard","user":{"id":"e2e_b
+{"success":true,"isNew":false,"redirectTo":"/demo/dashboard","user":{"id":"e2e_b
+{"success":true,"isNew":false,"redirectTo":"/demo/dashboard","user":{"id":"e2e_s
+--- logged-out /range/lobby:
+307 -> http://127.0.0.1:3457/demo/login
+--- queue blue then red
+{"success":true,"matched":false,"message":"Squad queued. Searching for an opposing team..."}
+{"success":true,"myTeam":null,"activeSessionId":null,"queued":[{"name":"Azure Squad","side":"BLUE","joinedAt":"2026-11-26T21:08:36.953Z","size":2}]}
+{"success":true,"matched":true,"sessionId":"match_14608f15-ce46-4efc-8232-366c59355537","side":"RED","status":"RUNNING"}
+match=match_14608f15-ce46-4efc-8232-366c59355537
+--- match page side marker (red1 / blue1 / non-member spec)
+Attack console
+Patch console
+spec on match page: 307 -> http://127.0.0.1:3457/range/lobby
+spec on spectate page: 200
+--- red proxy: wrong side (blue1) then real exploits
+{"success":false,"error":"Forbidden: the attack console is for the Red team of this match."}
+{"success":true,"status":200,"contentType":"application/json; charset=utf-8","body":"{\"accounts\":[{\"id\":1,\"owner_username\":\"alex\",\"name\":\"Alex Vance\",\"balance_cents\":124000,\"memo\":\"\"
+--- blue patch: closes /internal/admin/accounts
+{"success":true,"file":"server.js","restarting":true}
+{"success":false,"error":"Forbidden: the patch console is for the Blue team of this match."}
+--- red boss sweep
+{"success":true,"status":200,"contentType":"application/json; charset=utf-8","body":"{\"ok\":true,\"movedCents\":50000000,\"toId\":3}","cookie":null}
+--- wait for end
+report http=200
+{"success":true,"report":{"matchId":"match_14608f15-ce46-4efc-8232-366c59355537","redTeam":"Crimson Squad","blueTeam":"Azure Squad","startedAt":"2026-11-26T21:08:37.017Z","winner":"RED","reason":"vault-zero","vault":{"startCents":50000000,"finalCents":0,"drainedCents":50000000,"survivedCents":0},"score":{"exploitsLanded":2,"exploitsBlocked":1,"patchesApplied":1},"mvp":{"red":{"name":"RedOne","count":1},"blue":{"name":"BlueOne","count":1}},"timeline":[{"id":6,"action":"RANGE_MATCH_PAIRED","scope":"ALL","user":"RedOne","details":"e2e_team_red (RED) vs e2e_team_blue (BLUE)","at":"2026-11-26T21:08:37.021Z"},{"id":9,"action":"RANGE_PROXY_REQUEST","scope":"RED","user":"RedOne","details":"GET /internal/admin/accounts -> 200","at":"2026-11-26T21:08:41.538Z"},{"id":10,"action":"RANGE_EXPLOIT_LANDED","scope":"ALL","user":"RedOne","details":"exploit=open-admin probe: unauthenticated admin list -> 200","at":"2026-11-26T21:08:44.150Z"},{"id":12,"action":"RANGE_PATCH_APPLIED","scope":"BLUE","user":"BlueOne","details":"patched server.js (8972 bytes), target restarting","at":"2026-11-26T21:08:49.338Z"},{"id":14,"action":"RANGE_EXPLOIT_BLOCKED","scope":"ALL","user":"BlueOne","details":"exploit=open-admin probe: unauthenticated admin list -> 403","at":"2026-11-26T21:08:54.241Z"},{"id":16,"action":"RANGE_PROXY_REQUEST","scope":"RED","user":"RedTwo","details":"POST /internal/admin/vault -> 200","at":"2026-11-26T21:08:57.936Z"},{"id":18,"action":"RANGE_EXPLOIT_LANDED","scope":"ALL","user":"RedTwo","details":"exploit=vault-sweep probe: vault balance read 0 from target","at":"2026-11-26T21:09:02.556Z"},{"id":22,"action":"RANGE_MATCH_ENDED","scope":"ALL","user":null,"details":"reason=vault-zero winner=RED vault_cents=0 mvp_red=e2e_red1(1) mvp_blue=e2e_blue1(1)","at":"2026-11-26T21:09:02.788Z"}]}}
+{"success":true,"matchesPlayed":1,"teams":[{"team":"Crimson Squad","side":"RED","played":1,"wins":1},{"team":"Azure Squad","side":"BLUE","played":1,"wins":0}],"players":[{"name":"BlueOne","exploits":0,"patches":1},{"name":"RedOne","exploits":1,"patches":0},{"name":"RedTwo","exploits":1,"patches":0}]}
+--- pages after end
+report page 200
+leaderboard page 200
+red1 match page after end: 307 -> http://127.0.0.1:3457/range/match/match_14608f15-ce46-4efc-8232-366c59355537/report
+--- email leak check (expect 0)
+0
+0
+0
+0
+--- SSE red: 7 audit, 3 vault, end=1
+--- SSE blue: 6 audit, 3 vault, end=1
+--- SSE spec: 5 audit, 3 vault, end=1
+data: {"balance_cents":0,"status":"ENDED"}
+data: {"balance_cents":50000000,"status":"RUNNING"}
+data: {"balance_cents":null,"status":"RUNNING"}
+--- red SSE actions:
+      1 "action":"RANGE_EXPLOIT_BLOCKED"
+      2 "action":"RANGE_EXPLOIT_LANDED"
+      1 "action":"RANGE_MATCH_ENDED"
+      1 "action":"RANGE_MATCH_PAIRED"
+      2 "action":"RANGE_PROXY_REQUEST"
+--- spec SSE leaks RED/BLUE-only actions? (expect 0)
+0

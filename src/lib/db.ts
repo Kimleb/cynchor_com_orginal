@@ -285,6 +285,18 @@ function initSchema(db: DatabaseSync) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS range_target_matches (
+      id TEXT PRIMARY KEY,
+      match_session_id TEXT NOT NULL,
+      container_id TEXT,
+      network_id TEXT,
+      status TEXT NOT NULL DEFAULT 'STARTING',
+      vault_balance_cents INTEGER,
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      timeout_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS level_progress (
       username TEXT NOT NULL,
       level_id INTEGER NOT NULL,
@@ -421,4 +433,100 @@ export async function endStaleMatches(maxHours: number = 4): Promise<number> {
   const stale = (await db.prepare("SELECT id FROM match_sessions WHERE status = 'ACTIVE' AND created_at < ?").all(cutoff)) as Array<{ id: string }>;
   for (const s of stale) await endMatch(s.id);
   return stale.length;
+}
+
+// The existing range runtime uses synchronous SQLite transactions.
+export function recordLocalAuditLog({ userId, action, details, ip = '127.0.0.1' }: Parameters<typeof recordAuditLog>[0]) {
+  try {
+    openLocalDatabase().prepare(`
+      INSERT INTO audit_logs (id, user_id, action, details, ip_hash, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('audit_' + crypto.randomUUID(), userId || 'ANONYMOUS', action, details || null,
+      hashIpAddress(ip), new Date().toISOString());
+  } catch (error) {
+    console.error('Audit log recording error:', error);
+  }
+}
+
+export function endLocalMatch(sessionId: string): boolean {
+  const db = openLocalDatabase();
+  const row = db.prepare("SELECT red_team_id, blue_team_id FROM match_sessions WHERE id = ? AND status = 'ACTIVE'").get(sessionId) as { red_team_id: string; blue_team_id: string } | undefined;
+  if (row === undefined) return false;
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    db.prepare("UPDATE match_sessions SET status = 'ENDED' WHERE id = ?").run(sessionId);
+    db.prepare('DELETE FROM matchmaking_queue WHERE team_id IN (?, ?)').run(row.red_team_id, row.blue_team_id);
+    db.prepare("UPDATE teams SET status = 'RECRUITING' WHERE id IN (?, ?) AND status = 'MATCHED'").run(row.red_team_id, row.blue_team_id);
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  recordLocalAuditLog({ action: 'MATCH_ENDED', details: `Match ${sessionId} ended` });
+  return true;
+}
+
+export function endStaleLocalMatches(maxHours: number = 4): number {
+  const db = openLocalDatabase();
+  const cutoff = new Date(Date.now() - maxHours * 3600 * 1000).toISOString();
+  const stale = db.prepare("SELECT id FROM match_sessions WHERE status = 'ACTIVE' AND created_at < ?").all(cutoff) as Array<{ id: string }>;
+  for (const s of stale) endLocalMatch(s.id);
+  return stale.length;
+}
+export type RangeMatchStatus = 'STARTING' | 'RUNNING' | 'ENDED' | 'TIMEOUT' | 'KILLED' | 'FAILED';
+export interface RangeMatchRow {
+  id: string;
+  match_session_id: string;
+  container_id: string | null;
+  network_id: string | null;
+  status: RangeMatchStatus;
+  vault_balance_cents: number | null;
+  started_at: string;
+  ended_at: string | null;
+  timeout_at: string;
+}
+export function createRangeMatch(matchSessionId: string, timeoutAt: string, userId?: string): RangeMatchRow {
+  const id = `rtm_${crypto.randomUUID()}`;
+  const startedAt = new Date().toISOString();
+  openLocalDatabase().prepare(`
+    INSERT INTO range_target_matches (id, match_session_id, status, started_at, timeout_at)
+    VALUES (?, ?, 'STARTING', ?, ?)
+  `).run(id, matchSessionId, startedAt, timeoutAt);
+  recordLocalAuditLog({ userId, action: 'RANGE_MATCH_STARTED', details: `range match ${id} for match ${matchSessionId} starting (timeout_at ${timeoutAt})` });
+  return getRangeMatchById(id) as RangeMatchRow;
+}
+export function getRangeMatchById(id: string): RangeMatchRow | undefined {
+  return openLocalDatabase().prepare('SELECT * FROM range_target_matches WHERE id = ?').get(id) as RangeMatchRow | undefined;
+}
+// Latest range match for a match session (a session can be restarted).
+export function getRangeMatch(matchSessionId: string): RangeMatchRow | undefined {
+  return openLocalDatabase().prepare('SELECT * FROM range_target_matches WHERE match_session_id = ? ORDER BY started_at DESC, rowid DESC LIMIT 1').get(matchSessionId) as RangeMatchRow | undefined;
+}
+export function getActiveRangeMatch(matchSessionId: string): RangeMatchRow | undefined {
+  return openLocalDatabase().prepare("SELECT * FROM range_target_matches WHERE match_session_id = ? AND status IN ('STARTING','RUNNING') ORDER BY rowid DESC LIMIT 1").get(matchSessionId) as RangeMatchRow | undefined;
+}
+export function updateRangeMatch(id: string, fields: Partial<Pick<RangeMatchRow, 'container_id' | 'network_id' | 'status' | 'vault_balance_cents'>>): void {
+  // Fixed statement (no interpolated SQL): fields left undefined keep their current value.
+  openLocalDatabase().prepare(`
+    UPDATE range_target_matches SET
+      container_id = COALESCE(?, container_id),
+      network_id = COALESCE(?, network_id),
+      status = COALESCE(?, status),
+      vault_balance_cents = COALESCE(?, vault_balance_cents)
+    WHERE id = ?
+  `).run(fields.container_id ?? null, fields.network_id ?? null, fields.status ?? null, fields.vault_balance_cents ?? null, id);
+}
+const RANGE_END_ACTION = {
+  ENDED: 'RANGE_MATCH_ENDED',
+  TIMEOUT: 'RANGE_MATCH_TIMEOUT',
+  KILLED: 'RANGE_MATCH_KILLED',
+  FAILED: 'RANGE_MATCH_FAILED',
+} as const;
+// Moves an active range match to a terminal state exactly once. Returns false if it was already terminal.
+export function endRangeMatch(id: string, finalStatus: keyof typeof RANGE_END_ACTION, userId?: string, details?: string): boolean {
+  const res = openLocalDatabase().prepare("UPDATE range_target_matches SET status = ?, ended_at = ? WHERE id = ? AND status IN ('STARTING','RUNNING')")
+    .run(finalStatus, new Date().toISOString(), id);
+  if (Number(res.changes) === 0) return false;
+  recordLocalAuditLog({ userId, action: RANGE_END_ACTION[finalStatus], details: `range match ${id}${details ? `: ${details}` : ''}` });
+  return true;
 }

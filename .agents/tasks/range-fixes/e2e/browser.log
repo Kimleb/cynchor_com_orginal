@@ -1,0 +1,26 @@
+PASS lobby renders for blue 
+PASS blue queued, lobby shows searching 
+PASS red redirected to match page match_e5235f6d-510e-475b-9f96-eb2def90c4ce
+PASS blue lobby polling redirected to match page 
+PASS SSE stream connected on red/blue/spectator 
+PASS red side marker 
+PASS blue side marker 
+PASS VaultMeter renders 
+PASS red sees AttackConsole only 
+PASS blue sees PatchConsole only 
+PASS AttackConsole /healthz returns response HTTP 200  application/json; charset=utf-8  {"ok":true}
+PASS AttackConsole exploit request lands 
+PASS RangeFeed received SSE events (red) 
+PASS PatchConsole submit shows result Patch applied to server.js. The target is restarting.
+PASS red feed has no PATCH_APPLIED (blue-only) 
+PASS spectator feed has no PROXY_REQUEST/PATCH_APPLIED (side-only) 12:44:18 AM[MATCH_PAIRED]e2e_team_red (RED) vs e2e_team_blue (BLUE)12:44:26 AM[EXPLOIT_LANDED]exploit=open-admin probe: 
+PASS blue feed has no PROXY_REQUEST (red-only) 
+PASS match ended banner + After Action Report link 
+PASS report page renders 
+PASS report has no emails 
+PASS leaderboard room filter has options 2
+PASS room filter select works 
+PASS leaderboard level filter has options 6
+PASS level filter select works 
+PASS leaderboard has no emails 
+PASS no browser console errors 

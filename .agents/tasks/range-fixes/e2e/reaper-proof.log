@@ -1,0 +1,3 @@
+before: {"containers":["7ab29ea7968162574140c80630ed106c9e1712ddce75e4f6786dd6ee25299c55"],"networks":["fa81812162aaf1526ca3a7a0728b2f8b1ff27cf4bfc4c6cbd44fead19a9d7695"]}
+reap result: {"matchesEnded":0,"containersRemoved":1,"networksRemoved":1}
+after: {"containers":[],"networks":[]}

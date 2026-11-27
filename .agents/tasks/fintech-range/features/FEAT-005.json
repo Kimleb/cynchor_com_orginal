@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-005",
+  "type": "chore",
+  "description": "Final verification pass against the spec's acceptance checklist: run every grep/diff/test/build check the spec names, run one real end-to-end match (2 red + 2 blue) producing a real After Action Report, verify isolation and the kill switch against a real container, and assemble the final report with all required evidence. Depends on FEAT-001 through FEAT-004 all being complete and committed.",
+  "status": "completed",
+  "steps": [
+    "Run `git diff --stat main -- src/lib/session.ts src/lib/guards.ts src/middleware.ts` (or the equivalent against the branch's start commit) and confirm it is empty \u2014 login/session/middleware/guards untouched.",
+    "Run a repo-wide grep for raw/concatenated SQL outside /range-target/ (e.g. `grep -rn \"SELECT\\|INSERT\\|UPDATE\\|DELETE\" src | grep -v '.prepare('` style check, refined to avoid false positives) and confirm the only unparameterized/concatenated query in the whole repo is the one documented exception inside range-target's login handler.",
+    "Run PATH=.tools/node22/bin:$PATH npm test (main suite) and PATH=.tools/node22/bin:$PATH npm run test:range-target (exploit-proof + isolation suite) and capture pass/fail counts for the final report.",
+    "Run PATH=.tools/node22/bin:$PATH npm run build (only with no `npm run dev` running) and capture exit code / route list for the final report.",
+    "Drive one real end-to-end match: seed 2 red-team + 2 blue-team test users and two teams directly in the DB, queue them via the real /api/range/queue route, confirm a real container+network come up (`docker ps`, `docker network ls`), fire at least one real exploit request through the proxy route and confirm the scorer/audit_logs/vault balance react, apply one real patch through the patch route and confirm it blocks that exploit on the next scorer tick, then let the match end (timeout or vault-zero) and fetch the real After Action Report; save the report JSON/output as the spec's required sample.",
+    "Run the isolation self-test once more against a freshly started match container and capture its pass result as the 'how isolation was implemented and verified' evidence.",
+    "Exercise the kill switch against a live match as a non-operator (expect 403) and as an operator (expect immediate force-destroy), capturing both results.",
+    "Clean up every container/network created during this verification pass (`docker rm -f`, `docker network rm` for anything this task created) and confirm `docker ps -a` / `docker network ls` show none left behind.",
+    "Write the final report (in .agents/tasks/fintech-range/, e.g. FINAL_REPORT.md) covering: isolation implementation+verification evidence, exploit-proof test results, the sample After Action Report, schema changes (list every new table/column), and `git diff --stat` for the whole branch vs main.",
+    "Perform a focused code review and a security review of the Docker hardening flags and every new route's auth checks (this is the review-loop step the workflow already runs after FEAT coding; this feature's steps are the evidence it will check against)."
+  ],
+  "acceptance_criteria": [
+    "every checklist item in the spec's section 6 is satisfied with real evidence (not reasoning about code, but actual command output / actual match run)",
+    "git diff --stat shows zero changes to src/lib/session.ts, src/lib/guards.ts, src/middleware.ts",
+    "grep confirms no unparameterized SQL exists outside the one documented range-target exception",
+    "a real container was created, hardened, isolated, and destroyed, with the isolation self-test passing against it",
+    "a real After Action Report was generated from a real match run and is attached as evidence",
+    "no test containers or networks are left running or present after verification"
+  ],
+  "verification": [
+    "PATH=.tools/node22/bin:$PATH npm test \u2014 passes",
+    "PATH=.tools/node22/bin:$PATH npm run test:range-target \u2014 passes",
+    "PATH=.tools/node22/bin:$PATH npm run build \u2014 passes",
+    "`docker ps -a` and `docker network ls` show no leftover task-created resources after cleanup",
+    "git commit the final report file as the closing commit for this task"
+  ],
+  "blocked_reason": null,
+  "findings": "Final report in .agents/tasks/fintech-range/FINAL_REPORT.md; evidence in e2e/final-report-sample.json (real AAR) and e2e/kill-and-isolation.{sh,log}. Ran (PATH=.tools/node22/bin): git diff --stat main on session/guards/middleware -> empty; SQL grep -> only range-target/server.js:49 (documented); npm test 47/47; npm run test:range-target 13/13; npm run build exit 0; e2e/run.sh real HTTP match (winner RED, vault-zero, 2 landed/1 blocked/1 patch, no emails); kill-and-isolation.sh live match: hardening flags confirmed, outbound probes blocked, non-operator kill 403 (container kept), operator kill 200 in 0.25s with container+network destroyed and audit rows. docker ps -a / network ls filtered by label cynchor.range empty afterwards; next start servers stopped. Known limits: in-process timers (no reaper after server restart), patch resets target in-memory state, React client not browser-tested."
+}

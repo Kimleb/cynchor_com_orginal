@@ -43,3 +43,11 @@ data/
 .env*
 *.tsbuildinfo
 .test.sqlite*
+local.sqlite
+local.sqlite-*
+# workflow bookkeeping
+.agents/tasks/*/context.json
+.agents/tasks/*/task.json
+.agents/tasks/*/plan.md
+.agents/tasks/*/verdict.json
+.agents/tasks/*/baseline.md

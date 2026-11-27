@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-003",
+  "type": "docs",
+  "status": "completed",
+  "blocked_reason": null,
+  "findings": "All checks passed: npm test 60/60, test:range-target 17/17, build ok. e2e 2v2 completed (winner RED, AAR 200, 0 emails); leaderboard filters and bad-value 400s proven; reaper removed real orphan container+network; session/guards/middleware diff empty; no concatenated SQL; 0 cynchor.range leftovers. Artifacts in .agents/tasks/range-fixes/e2e/ (run.sh, seed.ts, run-output.log, reaper-proof.ts/.log, report-evidence.json) and FINAL_REPORT.md. Note: orphan removal without a DB row writes no audit row (documented). One non-range container exists in podman ps -a, left untouched. Nothing failed, no fixes needed.",
+  "description": "Group C: final done-check and FINAL_REPORT draft. Depends on FEAT-001 and FEAT-002. Fixes only what the done-check shows failing.",
+  "steps": [
+    "export PATH=/home/chimera/cynchor_com_orginal/.tools/node22/bin:$PATH; confirm no dev server running; run npm test, npm run test:range-target, npm run build; capture counts.",
+    "Run real e2e 2 red + 2 blue following .agents/tasks/fintech-range/e2e/run.sh (copy to .agents/tasks/range-fixes/e2e/); confirm After Action Report JSON is produced and contains no email; save output under .agents/tasks/range-fixes/e2e/.",
+    "Prove per-level leaderboard (curl /api/range/leaderboard?exploit=<id> and ?matchId=<id> after the e2e match) and the reaper (create an orphan labelled container+network, run reapOrphans, show them gone + audit row); save logs.",
+    "Run git diff --stat main -- src/lib/session.ts src/lib/guards.ts src/middleware.ts (must be empty); grep src and range-target for concatenated SQL (only range-target/server.js DELIBERATELY-VULNERABLE-SQL login allowed); docker ps -a and docker network ls filtered by label cynchor.range must be empty (clean up any leftovers).",
+    "Write .agents/tasks/range-fixes/FINAL_REPORT.md: each fixed bug (file, test), tests added, check results table, decisions (link ASSUMPTIONS.md), deliberately left items (from SWEEP_NOTES.md). Commit."
+  ],
+  "acceptance_criteria": [
+    "All three commands pass",
+    "e2e match completes with an After Action Report",
+    "FINAL_REPORT.md exists and lists fixed bugs, tests, leftovers",
+    "No leftover containers or networks"
+  ],
+  "verification": [
+    "npm test && npm run test:range-target && npm run build",
+    "git diff --stat main -- src/lib/session.ts src/lib/guards.ts src/middleware.ts prints nothing"
+  ]
+}
