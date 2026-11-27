@@ -6,17 +6,16 @@ import crypto from 'crypto';
 import { ApplicationDatabase, createPostgresPool } from "./database";
 
 
-// Path to SQLite db file
-const dbDir = path.join(process.cwd(), 'data');
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-const dbPath = process.env.CYNCHOR_DB_PATH || path.join(dbDir, 'cynchor.sqlite');
-
 let database: DatabaseSync | null = null;
 
 export function openLocalDatabase(): DatabaseSync {
   if (!database) {
+    let dbPath = process.env.CYNCHOR_DB_PATH;
+    if (!dbPath) {
+      const dbDir = path.join(process.cwd(), 'data');
+      fs.mkdirSync(dbDir, { recursive: true });
+      dbPath = path.join(dbDir, 'cynchor.sqlite');
+    }
     const next = new DatabaseSync(dbPath);
     try {
       initSchema(next);
@@ -31,7 +30,11 @@ export function openLocalDatabase(): DatabaseSync {
 
 let applicationDb: ApplicationDatabase | undefined;
 export function getDb(): ApplicationDatabase {
-  return applicationDb ??= process.env.CYNCHOR_DATABASE === 'postgres'
+  const postgres = process.env.CYNCHOR_DATABASE === 'postgres';
+  if (process.env.VERCEL === '1' && !postgres) {
+    throw new Error('Set CYNCHOR_DATABASE=postgres for Vercel deployments.');
+  }
+  return applicationDb ??= postgres
     ? new ApplicationDatabase(undefined, createPostgresPool())
     : new ApplicationDatabase(openLocalDatabase());
 }

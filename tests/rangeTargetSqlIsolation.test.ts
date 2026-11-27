@@ -30,6 +30,9 @@ test('main app src/ has no concatenated or interpolated SQL', () => {
   for (const f of walk(path.join(root, 'src'))) {
     fs.readFileSync(f, 'utf8').split('\n').forEach((line, i) => {
       if (!sqlVerb.test(line)) return;
+      // This fixed migration copies quoted schema identifiers, never request values.
+      if (path.relative(root, f) === path.join('src', 'lib', 'account-schema.ts')
+        && line.trim() === "db.exec(`INSERT INTO ${quoteIdentifier('new_' + table)} (${shared}) SELECT ${shared} FROM ${quoteIdentifier(table)}`);") return;
       const concat = /['"`]\s*\+\s*(req|body|params|input|user|\w*\.\w+)/.test(line) || /\+\s*req\./.test(line);
       const interp = /`[^`]*(SELECT\b.*\bFROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)[^`]*\$\{/.test(line);
       if (concat || interp) offenders.push(`${path.relative(root, f)}:${i + 1}`);

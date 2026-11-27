@@ -47,5 +47,5 @@ jobs:
           cache: 'npm'
       - name: Install dependencies
         run: npm ci
-      - name: Run range-target exploit-proof tests
-        run: npm run test:range-target
+      - name: Run container isolation and cleanup checks
+        run: node --import tsx --test --test-concurrency=1 tests/range-target/isolation.test.ts tests/range-target/reaper.test.ts

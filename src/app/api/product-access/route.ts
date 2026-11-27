@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Enter a name, valid email and a message of up to 500 characters.' }, { status: 400 });
   }
   const { name, email, message, requestId } = parsed.data;
-  const db = getDb();
   try {
+    const db = getDb();
     const conflict = await db.transaction(async () => {
       const existing = await db.prepare(`SELECT applicant_name, reply_email, note FROM product_access_mail
         JOIN access_requests ON id = request_id WHERE request_id = ?`).get(requestId);
@@ -42,9 +42,10 @@ export async function POST(req: NextRequest) {
       return false;
     });
     if (conflict) return NextResponse.json({ error: 'Please refresh and submit your updated request.' }, { status: 409 });
-  } catch {
+  } catch (error) {
+    console.error('Product access request storage unavailable', { code: error instanceof Error && 'code' in error ? error.code : undefined });
     return NextResponse.json({ error: 'Your request could not be saved. Please try again.' }, { status: 503 });
   }
-  await deliverProductMail(requestId);
+  await deliverProductMail(requestId).catch(() => console.error('Product access request saved. Email delivery is pending.'));
   return NextResponse.json({ success: true });
 }
