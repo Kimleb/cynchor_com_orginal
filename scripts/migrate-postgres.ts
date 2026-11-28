@@ -24,6 +24,7 @@ async function migrate(source: string) {
       await target.query('BEGIN');
       const schema = postgresSchema();
       await target.query(readFileSync(resolve('migrations/001_postgres.sql'), 'utf8').replace(/\bcynchor\b/g, schema));
+      await target.query(readFileSync(resolve('migrations/002_squad_chat.sql'), 'utf8').replace(/^BEGIN;|^COMMIT;/gm, '').replace(/\bcynchor\b/g, schema));
       const counts: Array<[string, number]> = [];
       for (const table of tables) {
         const rows = sqlite.prepare('SELECT * FROM ' + quote(table)).all();

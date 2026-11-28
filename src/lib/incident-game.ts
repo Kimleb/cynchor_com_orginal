@@ -1,4 +1,5 @@
-import { drills, drillView, type DrillPlayer } from './incident-drills';
+import { transferView, transferPoints, moveTransfer, type BankPlayer } from './transfer-game';
+import { drills, drillView } from './incident-drills';
 import { randomUUID } from 'node:crypto';
 import { getDb } from './db';
 import { completeLevelForUser } from './range-progress';
@@ -10,12 +11,12 @@ const cases = [
   { title: 'Duplicate settlements', prompt: 'Two settlement entries share one transaction reference. What best protects the ledger?', options: ['Delete both entries', 'Process the batch again', 'Hold the affected batch and reconcile against the source records'], correct: 2 },
   { title: 'Unexpected privilege change', prompt: 'An unapproved administrator grant appears during recovery. Which response preserves evidence and limits exposure?', options: ['Close the incident', 'Suspend the grant, preserve the audit trail and review its use', 'Rotate the dashboard theme'], correct: 1 },
 ];
-export const incidentLevels = drills.map(({title,brief}, index) => ({id:index+1, title, prompt:brief}));
+export const incidentLevels = ['Branch clearing', 'Priority clearing', 'Rapid settlement', 'Express settlement'].map((title,index)=>({id:index+1,title}));
 
-type Player = DrillPlayer;
+type Player = BankPlayer;
 export type IncidentView = {
   phase: 'idle' | 'expired' | 'waiting' | 'playing' | 'finished'; id?: string; level?: number;
-  drill?: ReturnType<typeof drillView>; title?: string; prompt?: string; options?: string[]; deadline?: string; choice?: number;
+  bank?: ReturnType<typeof transferView>; drill?: ReturnType<typeof drillView>; title?: string; prompt?: string; options?: string[]; deadline?: string; choice?: number;
   red?: number; blue?: number; submitted?: number; answer?: string;
 };
 export class GameError extends Error {}
@@ -42,6 +43,15 @@ export async function incidentGame(userId: string, action: string, matchId?: unk
       if (!me && wasPlaying) throw new GameError('This round belongs to the original roster.');
       if (me) {
         const scenario = cases[current.level_id - 1];
+        const bank = me.transfers !== undefined;
+        const timestamp = Date.now();
+        if (bank && ['dispatch','intercept'].includes(action)) {
+          if (matchId !== current.id || !wasPlaying || timestamp >= Date.parse(current.expires_at)) throw new GameError('This round has closed.');
+          const error = moveTransfer(players,me,action,choice,timestamp,Date.parse(current.expires_at),current.level_id);
+          if (error) throw new GameError(error);
+          await db.prepare('UPDATE match_sessions SET summary_json=? WHERE id=?').run(JSON.stringify(players),current.id);
+        }
+        if (bank && ['submit','apply','answer','restore'].includes(action)) throw new GameError('Use the live transfer desk.');
         if (['answer','apply','restore','submit'].includes(action)) {
           if (matchId !== current.id) throw new GameError('Refresh to see your current round.');
           if (wasPlaying && Date.now() < Date.parse(current.expires_at) && me.choice === undefined) {
@@ -64,13 +74,15 @@ export async function incidentGame(userId: string, action: string, matchId?: unk
           }
         }
         const submitted = players.filter(p => p.choice !== undefined).length;
-        const finished = !wasPlaying || submitted === players.length || Date.now() >= Date.parse(current.expires_at);
-        const points = (p: Player) => p.choice === (p.practical ? 1 : scenario.correct) ? 100 : 0;
+        const board = bank ? transferView(players,me,timestamp) : undefined;
+        const allCleared = board?.ledger.length === 9 && board.ledger.every(t=>t.state !== 'Pending');
+        const finished = allCleared || !wasPlaying || submitted === players.length || Date.now() >= Date.parse(current.expires_at);
+        const points = (p: Player) => bank ? transferPoints(players,p,timestamp) : p.choice === (p.practical ? 1 : scenario.correct) ? 100 : 0;
         const total = (side: string) => players.filter(p => p.side === side).reduce((n,p) => n + points(p), 0);
         const red = total('RED'), blue = total('BLUE');
         if (finished && wasPlaying) {
           const now = new Date().toISOString();
-          for (const p of players.filter(p => p.choice !== undefined)) {
+          for (const p of players.filter(p => bank || p.choice !== undefined)) {
             await db.prepare('INSERT INTO range_scores (id,session_id,level_id,username,side,score,vault_remaining,created_at) VALUES (?,?,?,?,?,?,?,?)')
               .run(randomUUID(), current.id, current.level_id, p.handle, p.side, points(p), 0, now);
             if (points(p)) await completeLevelForUser(p.handle, current.level_id, points(p));
@@ -79,7 +91,7 @@ export async function incidentGame(userId: string, action: string, matchId?: unk
             .run(now,red,blue,red === blue ? 'TIE' : red > blue ? 'RED' : 'BLUE',current.id);
           await db.prepare("UPDATE teams SET status='RECRUITING' WHERE id IN (?,?)").run(current.red_team_id,current.blue_team_id);
         }
-        return { phase: finished ? 'finished' : 'playing', id: current.id, level: current.level_id, drill: me.practical ? drillView(players,me,current.level_id,current.id) : undefined, ...(me.practical ? {} : {title: scenario.title, prompt: scenario.prompt, options: scenario.options}), deadline: current.expires_at, choice: me.choice, submitted, ...(finished ? { red, blue, answer: me.practical ? undefined : scenario.options[scenario.correct] } : {}) };
+        return { phase: finished ? 'finished' : 'playing', id: current.id, level: current.level_id, bank: board, drill: !bank && me.practical ? drillView(players,me,current.level_id,current.id) : undefined, ...(bank || me.practical ? {} : {title: scenario.title, prompt: scenario.prompt, options: scenario.options}), deadline: current.expires_at, choice: me.choice, submitted, ...(finished ? { red, blue, answer: bank || me.practical ? undefined : scenario.options[scenario.correct] } : {}) };
       }
     }
     if (action === 'cancel') {
@@ -101,7 +113,7 @@ export async function incidentGame(userId: string, action: string, matchId?: unk
     const roster = await db.prepare(`SELECT u.id, LOWER(u.username) AS handle, t.side,
       COALESCE((SELECT MAX(level_id) FROM level_progress WHERE username=LOWER(u.username)),1) AS level
       FROM team_members m JOIN users u ON m.user_id=u.id JOIN teams t ON m.team_id=t.id WHERE t.id IN (?,?)`).all(teamId,opponent.id);
-    const players: Player[] = roster.map(p => ({id:p.id, handle:p.handle, side:p.side, practical:true}));
+    const players: Player[] = roster.map(p => ({id:p.id, handle:p.handle, side:p.side, transfers:[]}));
     const level = Math.min(cases.length,...roster.map(p => Number(p.level)));
     const id = randomUUID(), now = new Date(), deadline = new Date(now.getTime()+120000).toISOString();
     const red = team.side === 'RED' ? teamId : opponent.id, blue = team.side === 'BLUE' ? teamId : opponent.id;
@@ -109,6 +121,6 @@ export async function incidentGame(userId: string, action: string, matchId?: unk
       VALUES (?,'INCIDENT','ROUND',?,?,?,?,?,?)`).run(id,red,blue,level,JSON.stringify(players),now.toISOString(),deadline);
     await db.prepare("UPDATE teams SET status='MATCHED' WHERE id IN (?,?)").run(red,blue);
     await db.prepare("DELETE FROM matchmaking_queue WHERE team_id IN (?,?) AND status='INCIDENT_SEARCH'").run(red,blue);
-    return { phase:'playing', id, level, deadline, drill:drillView(players,players.find(p=>p.id===userId)!,level,id), submitted:0 };
+    return { phase:'playing', id, level, deadline, bank:transferView(players,players.find(p=>p.id===userId)!,now.getTime()), submitted:0 };
   });
 }

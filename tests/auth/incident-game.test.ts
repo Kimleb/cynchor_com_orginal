@@ -1,4 +1,5 @@
 import './request';
+import {squadChat} from '../../src/lib/squad-chat';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -36,22 +37,31 @@ test('two ready teams share a round, score once, unlock levels and finish expire
   assert.equal((await incidentGame(ids[0],'queue')).phase,'waiting');
   const match = await incidentGame(ids[3],'queue');
   assert.equal(match.phase,'playing');
-  assert.equal(match.drill?.roster.length, 6);
-  for (const id of ids) {
-    for (const record of match.drill!.records.filter(r => r.evidence.includes('K-17'))) {
-      await incidentGame(id,'apply',match.id,record.id);
-    }
-    assert.equal((await incidentGame(id,'status')).drill?.records.filter(r=>r.held).length,2);
-    await incidentGame(id,'submit',match.id);
-  }
-  const result = await incidentGame(ids[0],'submit',match.id);
-  assert.equal(result.red,300);
+  assert.equal(match.bank?.roster.length,6);
+  const redRoom=(await squadChat(ids[0])).data.teamId;
+  const blueRoom=(await squadChat(ids[3])).data.teamId;
+  await squadChat(ids[0],{teamId:redRoom,message:'Cover west'});
+  await squadChat(ids[3],{teamId:blueRoom,message:'Watch wire'});
+  assert.deepEqual((await squadChat(ids[1])).data.messages?.map(m=>m.message),['Cover west']);
+  assert.deepEqual((await squadChat(ids[4])).data.messages?.map(m=>m.message),['Watch wire']);
+  assert.equal((await squadChat(ids[0],{teamId:blueRoom,message:'wrong room'})).status,403);
+  await assert.rejects(incidentGame(ids[3],'dispatch',match.id,0));
+  await assert.rejects(incidentGame(ids[0],'intercept',match.id,0));
+  for (const id of ids.slice(0,3)) for(let lane=0;lane<3;lane++) await incidentGame(id,'dispatch',match.id,lane);
+  const ledger=(await incidentGame(ids[3],'status')).bank!.ledger;
+  for(let i=0;i<3;i++) await incidentGame(ids[i+3],'intercept',match.id,ledger[i].id);
+  const snapshot=await db.prepare('SELECT summary_json FROM match_sessions WHERE id=?').get(match.id!);
+  const players=JSON.parse(snapshot!.summary_json);
+  for(const player of players) for(const transfer of player.transfers) transfer.settles=Date.now()-1;
+  await db.prepare('UPDATE match_sessions SET summary_json=? WHERE id=?').run(JSON.stringify(players),match.id!);
+  const result=await incidentGame(ids[0],'status');
+  assert.equal(result.red,600);
   assert.equal(result.blue,300);
   assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM range_scores WHERE session_id=?').get(match.id!))?.n,6);
-  assert.equal((await getUserLevelProgress(ids[0]))[1].unlocked,true);
+  assert.equal((await getUserLevelProgress(ids[3]))[1].unlocked,true);
   await incidentGame(ids[3],'queue');
   const next = await incidentGame(ids[0],'queue');
-  assert.equal(next.level,2);
+  assert.equal(next.level,1);
   await db.prepare('UPDATE match_sessions SET expires_at=? WHERE id=?').run(now,next.id!);
-  assert.equal((await incidentGame(ids[0],'submit',next.id)).red,0);
+  assert.equal((await incidentGame(ids[0],'status',next.id)).red,0);
 });

@@ -246,6 +246,13 @@ function initSchema(db: DatabaseSync) {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS squad_messages (
+      id TEXT PRIMARY KEY, team_id TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      message TEXT NOT NULL CHECK(length(message) BETWEEN 1 AND 400), created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS squad_messages_team_time ON squad_messages(team_id,created_at,id);
+
     CREATE TABLE IF NOT EXISTS team_members (
       id TEXT PRIMARY KEY,
       team_id TEXT NOT NULL,

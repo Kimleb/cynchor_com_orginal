@@ -24,7 +24,7 @@ export default async function RangesPage() {
     return <main className="mx-auto max-w-4xl space-y-6 px-5 py-12">
       <Link className="text-teal" href="/demo/incident">← Incident lobby</Link>
       <h1 className="font-heading text-3xl font-bold">Fintech response progress</h1>
-      <p>Rounds use the highest level unlocked by everyone in both teams. Contain every affected record and keep normal records active to unlock your next level.</p>
+      <p>Rounds use the highest level unlocked by everyone in both teams. Earn points by settling or intercepting transfers to unlock your next level. Higher levels shorten the clearing window.</p>
       <div className="grid gap-4 sm:grid-cols-2">{incidentLevels.map(level => {
         const result = progress.find(row => row.levelId === level.id);
         return <section key={level.id} className="space-y-3 rounded-xl border border-border bg-surface p-5">
