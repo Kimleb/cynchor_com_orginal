@@ -71,7 +71,7 @@ export async function incidentGame(userId: string, action: string, matchId?: unk
       await db.prepare("DELETE FROM matchmaking_queue WHERE team_id=? AND status='INCIDENT_SEARCH'").run(teamId);
       return { phase: 'idle' };
     }
-    if (action !== 'queue') return { phase: team.status === 'INCIDENT_WAIT' ? 'waiting' : 'idle', deadline: search ? new Date(Date.parse(search.joined_at) + searchWindow).toISOString() : undefined };
+    if (action !== 'queue') return { phase: team.status === 'INCIDENT_WAIT' ? 'waiting' : 'idle' };
     if (!['RECRUITING','INCIDENT_WAIT'].includes(team.status)) throw new GameError('Finish your current team activity first.');
     const opponent = await db.prepare("SELECT t.id FROM teams t JOIN matchmaking_queue q ON q.team_id=t.id WHERE t.status='INCIDENT_WAIT' AND q.status='INCIDENT_SEARCH' AND q.joined_at > ? AND t.side <> ? ORDER BY q.joined_at,t.id LIMIT 1").get(cutoff,team.side);
     if (!opponent || !await teamReady(opponent.id)) {
@@ -80,7 +80,7 @@ export async function incidentGame(userId: string, action: string, matchId?: unk
       await db.prepare(`INSERT INTO matchmaking_queue (id,team_id,side,status,joined_at) VALUES (?,?,?,'INCIDENT_SEARCH',?)
         ON CONFLICT(team_id) DO UPDATE SET status='INCIDENT_SEARCH', joined_at=excluded.joined_at, side=excluded.side`)
         .run(randomUUID(),teamId,team.side,started);
-      return { phase: 'waiting', deadline: new Date(Date.parse(started) + searchWindow).toISOString() };
+      return { phase: 'waiting' };
     }
     const roster = await db.prepare(`SELECT u.id, LOWER(u.username) AS handle, t.side,
       COALESCE((SELECT MAX(level_id) FROM level_progress WHERE username=LOWER(u.username)),1) AS level

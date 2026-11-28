@@ -24,7 +24,11 @@ test('two ready teams share a round, score once, unlock levels and finish expire
   }
   const search = await incidentGame(ids[0],'queue');
   assert.equal(search.phase,'waiting');
-  assert.equal((await incidentGame(ids[1],'queue')).deadline, search.deadline);
+  assert.equal(search.deadline, undefined);
+  const searchStart = async () => (await db.prepare("SELECT joined_at FROM matchmaking_queue WHERE team_id=(SELECT team_id FROM team_members WHERE user_id=?)").get(ids[0]))?.joined_at;
+  const started = await searchStart();
+  assert.equal((await incidentGame(ids[1],'queue')).phase, 'waiting');
+  assert.equal(await searchStart(), started);
   await db.prepare("UPDATE matchmaking_queue SET joined_at=? WHERE status='INCIDENT_SEARCH'").run(new Date(Date.now()-120001).toISOString());
   assert.equal((await incidentGame(ids[3],'queue')).phase,'waiting');
   assert.equal((await incidentGame(ids[1],'status')).phase,'expired');

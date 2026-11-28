@@ -1,23 +1,27 @@
 'use client';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { TimerOff } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import type { IncidentView } from '@/lib/incident-game';
-function SearchDial({deadline}: {deadline?: string}) {
-  const [now,setNow] = useState(Date.now);
+const searchTips = [
+  'Use a unique password for each account.',
+  'Verify payment changes with a call to a known number.',
+  'Lock your screen when you step away.',
+  'Report sign-in prompts you didn’t request.',
+  'Check the domain before entering your password.',
+  'Keep recovery codes somewhere secure.',
+];
+
+function SearchTip() {
+  const [index, setIndex] = useState(() => Math.floor(Math.random() * searchTips.length));
   useEffect(() => {
-    if (!deadline) return;
-    const tick = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(tick);
-  }, [deadline]);
-  const seconds = Math.min(120, Math.max(0, Math.ceil((Date.parse(deadline ?? '') - now) / 1000)));
-  return <div className="relative mx-auto grid h-36 w-36 place-items-center rounded-full border border-teal/20 bg-teal/5">
-    {deadline ? <>
-      <div aria-hidden="true" className="absolute inset-2 rounded-full" style={{background:`conic-gradient(#16b4b2 ${seconds * 3}deg, transparent 0)`, maskImage:'radial-gradient(circle, transparent 65%, black 66%)'}} />
-      <div aria-hidden="true" className="absolute inset-5 rounded-full border border-dashed border-teal/40 motion-safe:animate-[spin_16s_linear_infinite]" />
-      <span role="timer" aria-label="Search time remaining" className="font-mono text-3xl tabular-nums text-teal">{Math.floor(seconds/60)}:{String(seconds%60).padStart(2,'0')}</span>
-    </> : <TimerOff aria-hidden="true" className="h-10 w-10 text-muted" />}
-  </div>;
+    const interval = setInterval(() => {
+      const offset = 1 + Math.floor(Math.random() * (searchTips.length - 1));
+      setIndex(previous => (previous + offset) % searchTips.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, []);
+  return <p className="mx-auto max-w-sm text-sm text-muted"><span className="font-medium text-teal">Security tip</span> · {searchTips[index]}</p>;
 }
 export default function Round() {
   const [game,setGame] = useState<IncidentView>(), [error,setError] = useState(''), [busy,setBusy] = useState(false);
@@ -52,11 +56,15 @@ export default function Round() {
       {!game && !error && <p>Loading round…</p>}
       {game?.phase === 'idle' && <><p>Both teams have two minutes to respond to the same incident. Each correct response earns 100 points for your team and unlocks your next level.</p><button className={button} disabled={busy} onClick={()=>act('queue')}>Find opposing team</button></>}
       {(game?.phase === 'waiting' || game?.phase === 'expired') && <div className="space-y-4 py-3 text-center">
-        <SearchDial deadline={game.phase === 'waiting' ? game.deadline : undefined} />
+        {game.phase === 'waiting' && <div aria-hidden="true" className="relative mx-auto grid h-24 w-24 place-items-center rounded-full bg-teal/5">
+          <div className="absolute inset-1 rounded-full border-2 border-teal/15 border-r-teal/60 border-t-teal motion-safe:animate-[spin_2s_linear_infinite]" />
+          <ShieldCheck className="h-8 w-8 text-teal" strokeWidth={1.5} />
+        </div>}
         <div role="status">
           <h2 className="font-heading text-xl font-semibold">{game.phase === 'waiting' ? 'Searching for an opponent' : 'Search timed out'}</h2>
-          <p className="mt-1 text-sm text-muted">{game.phase === 'waiting' ? 'Looking for a ready three-player team on the opposite side.' : 'No opposing team was found in two minutes.'}</p>
+          {game.phase === 'expired' && <p className="mt-1 text-sm text-muted">No opposing team was available.</p>}
         </div>
+        {game.phase === 'waiting' && <SearchTip />}
         {game.phase === 'expired' ? <button className={button} disabled={busy} onClick={()=>act('queue')}>Search again</button> : <button className={button} disabled={busy} onClick={()=>act('cancel')}>Cancel search</button>}
       </div>}
       {(game?.phase === 'playing' || game?.phase === 'finished') && <>
