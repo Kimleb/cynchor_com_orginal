@@ -1,3 +1,4 @@
+import { hasRangeAccess } from '@/lib/team-rules';
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
 import { EXPLOIT_IDS, type ExploitId } from '@/lib/range-runtime/exploitChecks';
@@ -10,6 +11,7 @@ export async function GET(req: Request) {
     if (user === null) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    if (!await hasRangeAccess(user.id)) return NextResponse.json({ success: false, error: 'Complete team formation and accept the rules of engagement.' }, { status: 403 });
     const params = new URL(req.url).searchParams;
     const filter: LeaderboardFilter = {};
     const matchId = params.get('matchId');

@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Badge } from '@/components/common/Badge';
-import { DisclaimerModal } from '@/components/disclaimer/DisclaimerModal';
 import { LaptopEventMockup } from '@/components/illustrations/LaptopEventMockup';
 import { SegmentedNetworkDiagram } from '@/components/illustrations/SegmentedNetworkDiagram';
 import { ConcentricWatermark } from '@/components/illustrations/ConcentricWatermark';
@@ -17,7 +16,6 @@ import {
   Radio, 
   Users2, 
   Server, 
-  Terminal, 
   Lock, 
   Crosshair, 
   Shield, 
@@ -31,7 +29,6 @@ import {
 import { StatRow } from '@/components/home/StatCountUp';
 
 export default function HomePage() {
-  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
 
   return (
     <div className="bg-bg text-text relative overflow-hidden">
@@ -117,7 +114,7 @@ export default function HomePage() {
                 <span className="text-border">•</span>
                 <div className="flex items-center gap-1.5">
                   <Users2 className="w-3.5 h-3.5 text-text" />
-                  <span>Solo or team</span>
+                  <span>Three-player teams</span>
                 </div>
                 <span className="text-border">•</span>
                 <div className="flex items-center gap-1.5">
@@ -202,10 +199,10 @@ export default function HomePage() {
                     STEP 02
                   </div>
                   <h3 className="font-heading font-semibold text-base text-text">
-                    Learn alone or enter a team
+                    Enter a team
                   </h3>
                   <p className="text-xs text-muted leading-relaxed mt-1">
-                    Practice solo at your own pace or queue into a 3-person combat squad.
+                    Create a three-player squad or find teammates through matchmaking.
                   </p>
                 </div>
               </Reveal>
@@ -334,57 +331,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* SECTION 3.4: "LEARN ALONE OR ENTER A TEAM" (Mirroring Dashboard) */}
+      {/* Team formation */}
       <section className="py-16 sm:py-24 border-b border-border bg-surface/30">
         <div className="container mx-auto px-4 sm:px-6 max-w-5xl space-y-12">
           <div className="text-center space-y-2 max-w-xl mx-auto">
             <DecodeText
-              text="OPERATIONAL MODES"
+              text="TEAM PLAY"
               className="text-[11px] text-muted tracking-widest uppercase font-semibold block"
             />
             <h2 className="font-heading font-bold text-2xl sm:text-3xl text-text tracking-tightest">
-              <SplitText text="Learn alone or enter a team" as="span" />
+              <SplitText text="Enter a team" as="span" />
             </h2>
             <Reveal variant="fade-up" delay={100}>
               <p className="text-xs sm:text-sm text-muted">
-                Select your mode of operation. Both paths land in isolated range pods.
+                Create a team, share an invite, or fill open slots through matchmaking.
               </p>
             </Reveal>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8" data-cy-stagger="true">
-            {/* Card 1: Learn Alone */}
-            <Reveal variant="fade-up" className="bg-surface p-8 rounded-2xl border border-border hover:border-teal/50 hover:shadow-glow-teal transition-all flex flex-col justify-between cy-hover-card cy-hud">
-              <div className="space-y-4">
-                <div className="w-10 h-10 rounded-xl bg-teal/10 text-teal flex items-center justify-center">
-                  <Terminal className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-bold text-xl text-text">Learn alone</h3>
-                  <p className="text-xs text-muted mt-1 leading-relaxed">
-                    Self-paced solo exercises. Zero team dependencies. Practice reconnaissance
-                    and triage in dedicated sandboxes.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-xl bg-surface-2 border border-border text-xs text-muted space-y-1 font-mono">
-                  <div>Pod: Single-User VM</div>
-                  <div>Domain: fintechcorp.local</div>
-                  <div className="text-teal">Matchmaking: Instant</div>
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <button
-                  onClick={() => setIsDisclaimerOpen(true)}
-                  className="cy-btn-sheen w-full py-2.5 px-4 rounded-xl border border-border text-text font-heading font-semibold text-xs hover:border-teal hover:text-teal transition-colors flex items-center justify-center gap-2"
-                >
-                  Enter Solo Range <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </Reveal>
-
-            {/* Card 2: Enter a team */}
+          <div className="mx-auto max-w-2xl">
             <Reveal variant="fade-up" className="bg-surface p-8 rounded-2xl border border-border hover:border-coral/50 hover:shadow-glow-coral transition-all flex flex-col justify-between cy-hover-card cy-hud">
               <div className="space-y-4">
                 <div className="w-10 h-10 rounded-xl bg-coral/10 text-coral flex items-center justify-center">
@@ -393,25 +358,25 @@ export default function HomePage() {
                 <div>
                   <h3 className="font-heading font-bold text-xl text-text">Enter a team</h3>
                   <p className="text-xs text-muted mt-1 leading-relaxed">
-                    Live adversary squad sessions. Group with 3+ operatives, pick Red or Blue,
+                    Live adversary squad sessions. Group with three players, pick Red or Blue,
                     and match against opposing squads.
                   </p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-surface-2 border border-border text-xs text-muted space-y-1 font-mono">
-                  <div>Quorum: 3+ Operatives</div>
+                  <div>Quorum: Three players</div>
                   <div>Battle: Red vs Blue 1v1</div>
                   <div className="text-coral">Matchmaking: Automated</div>
                 </div>
               </div>
 
               <div className="pt-6">
-                <button
-                  onClick={() => setIsDisclaimerOpen(true)}
+                <Link
+                  href="/demo/team"
                   className="cy-btn-sheen w-full py-2.5 px-4 rounded-xl bg-teal text-bg font-heading font-semibold text-xs hover:shadow-glow-teal transition-all flex items-center justify-center gap-2"
                 >
                   Enter Squad Lobby <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                </Link>
               </div>
             </Reveal>
           </div>
@@ -500,10 +465,7 @@ export default function HomePage() {
       </section>
 
       {/* Mandatory Disclaimer Modal */}
-      <DisclaimerModal
-        isOpen={isDisclaimerOpen}
-        onClose={() => setIsDisclaimerOpen(false)}
-      />
+
     </div>
   );
 }

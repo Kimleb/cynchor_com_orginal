@@ -1,3 +1,4 @@
+import { RULES_VERSION } from '../src/lib/demo-team';
 // DB-level range queue/match tests. No Docker: the container stop and the target transport are stubbed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,6 +18,7 @@ function seedTeam(side: 'RED' | 'BLUE', members: number) {
     const uid = `u_${id}_${i}`;
     db.prepare("INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, 'x', ?)").run(uid, uid, now);
     db.prepare('INSERT INTO team_members (id, team_id, user_id, joined_at) VALUES (?, ?, ?, ?)').run(`tm_${uid}`, id, uid, now);
+    db.prepare('INSERT INTO disclaimers (id, accepted_at, user_identifier, version) VALUES (?, ?, ?, ?)').run(RULES_VERSION + `tm_${uid}`, now, uid, RULES_VERSION);
     users.push(uid);
   }
   return { id, users };

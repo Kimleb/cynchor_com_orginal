@@ -1,5 +1,6 @@
 'use client';
 
+import { demoTeamPath } from '@/lib/demo-team';
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -43,7 +44,11 @@ export default function LoginForm() {
         return;
       }
 
-      router.push(data.redirectTo);
+      const teamPath = demoTeamPath(searchParams.get('invite'));
+      const query = teamPath.split('?')[1];
+      router.push(query && data.redirectTo === '/demo/profile'
+        ? '/demo/profile?' + query
+        : query ? teamPath : data.redirectTo);
       router.refresh();
     } catch {
       setError('Authentication error. Try again.');

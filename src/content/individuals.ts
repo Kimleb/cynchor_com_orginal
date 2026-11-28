@@ -259,8 +259,8 @@ export const INDIVIDUALS_CONTENT = {
   ],
   cta: {
     headline: 'Ready to take your first live shift?',
-    sub: 'Try our solo training flow in the live V1 demo today.',
-    buttonLabel: 'Learn alone in the demo',
+    sub: 'Find teammates in the Cynchor demo.',
+    buttonLabel: 'Find teammates',
     href: '/demo/login',
   },
 };

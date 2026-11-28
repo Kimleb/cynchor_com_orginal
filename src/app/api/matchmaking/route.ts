@@ -1,6 +1,8 @@
+import { teamReady } from '@/lib/team-rules';
 import { NextRequest, NextResponse } from 'next/server';
 import { readJsonObject } from '@/lib/request-json';
 import crypto from 'crypto';
+import { RULES_VERSION, TEAM_SIZE } from '@/lib/demo-team';
 import { getCurrentUser, checkRateLimit } from '@/lib/session';
 import { getDb, endStaleMatches, recordAuditLog } from '@/lib/db';
 
@@ -42,10 +44,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Team not found.' }, { status: 404 });
     }
     const memberCount = ((await db.prepare('SELECT COUNT(*) AS count FROM team_members WHERE team_id = ?').get(teamId)) as { count: number }).count;
-    if (memberCount < 3) {
-      return NextResponse.json({ success: false, error: 'Team must have at least 3 members to enter matchmaking.' }, { status: 400 });
+    if (memberCount !== TEAM_SIZE) {
+      return NextResponse.json({ success: false, error: 'Team must have exactly three members to enter matchmaking.' }, { status: 400 });
     }
 
+    if (!await teamReady(teamId)) return NextResponse.json({ success: false, error: 'All three team members must accept the rules of engagement.' }, { status: 403 });
     const opposingSide = myTeam.side === 'RED' ? 'BLUE' : 'RED';
     const now = new Date().toISOString();
 
@@ -76,9 +79,13 @@ export async function POST(req: NextRequest) {
         FROM matchmaking_queue q
         JOIN teams t ON t.id = q.team_id
         WHERE q.side = ? AND q.status = 'WAITING' AND q.team_id <> ?
-          AND (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.id) >= 3
+          AND (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.id) = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM team_members tm LEFT JOIN disclaimers d ON d.id = ? || tm.id AND d.version = ?
+            WHERE tm.team_id = t.id AND d.id IS NULL
+          )
         ORDER BY q.joined_at ASC LIMIT 1
-      `).get(opposingSide, teamId)) as { team_id: string } | undefined;
+      `).get(opposingSide, teamId, TEAM_SIZE, RULES_VERSION, RULES_VERSION)) as { team_id: string } | undefined;
 
       if (opp !== undefined) {
         sessionId = `match_${crypto.randomUUID()}`;

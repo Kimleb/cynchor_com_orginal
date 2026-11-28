@@ -1,3 +1,4 @@
+import { requireRangeTeam } from '@/lib/team-rules';
 import React from 'react';
 import { requireUser } from '@/lib/guards';
 import { RANGE_LEVELS, getPlayerHandle } from '@/lib/range-levels';
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function RangesPage() {
   const user = await requireUser({ profile: true });
+  await requireRangeTeam(user.id);
   const handle = getPlayerHandle(user);
   const progress = await getUserLevelProgress(handle);
 

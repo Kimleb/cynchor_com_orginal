@@ -26,14 +26,14 @@ export const TEAMS_CONTENT = {
     title: 'How Matchmaking Works',
     subtitle: 'Whether you bring a complete squad or drop into the queue, the range balances team sizes before launching the exercise.',
     chips: [
-      '3+ players per squad',
+      'Three players per team',
       'Red vs Blue',
       'Role pre-selects your side, and you can switch',
     ],
     disclaimer: 'Experience level is saved to your profile. Illustrative client-side explainer only; platform does not claim automated skill-weighted matchmaking.',
     steps: [
-      { step: 1, title: 'Join Queue', description: 'Enter via solo queue or squad lobby' },
-      { step: 2, title: 'Form Squads', description: 'Minimum 3+ operators assembled per squad' },
+      { step: 1, title: 'Join Queue', description: 'Create or join a team in the roster' },
+      { step: 2, title: 'Form Squads', description: 'Three players per squad' },
       { step: 3, title: 'Assign Sides', description: 'Red (Attacker) and Blue (Defender) rosters locked' },
       { step: 4, title: 'Pair Match', description: 'Red squad matched against live Blue SOC squad' },
       { step: 5, title: 'Range Launch', description: 'Dedicated SDN-isolated network spun up' },

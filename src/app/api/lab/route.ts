@@ -1,6 +1,6 @@
+import { hasRangeAccess } from '@/lib/team-rules';
 import { NextRequest, NextResponse } from 'next/server';
 import { readJsonObject } from '@/lib/request-json';
-import crypto from 'crypto';
 import { getCurrentUser, checkRateLimit } from '@/lib/session';
 import { getDb } from '@/lib/db';
 import { launchLab } from '@/lib/lab/adapter';
@@ -30,13 +30,8 @@ export async function POST(req: NextRequest) {
     if (!body) {
       return NextResponse.json({ success: false, error: 'Expected a JSON object.' }, { status: 400 });
     }
-    const mode = body.mode === 'TEAM' ? 'TEAM' : 'SOLO';
-
-    if (mode === 'SOLO') {
-      // Solo sessions: the server generates the session id; the client cannot choose one
-      const sessionId = `ses_${crypto.randomUUID()}`;
-      const lab = await launchLab({ sessionId, mode: 'SOLO', side: 'SOLO', userId: user.id });
-      return NextResponse.json({ success: true, lab });
+    if (body.mode !== 'TEAM') {
+      return NextResponse.json({ success: false, error: 'A team match is required.' }, { status: 400 });
     }
 
     // Team sessions: caller must be a member of one of the two teams in an ACTIVE match.
@@ -48,7 +43,7 @@ export async function POST(req: NextRequest) {
       FROM match_sessions ms
       LEFT JOIN team_members rtm ON rtm.team_id = ms.red_team_id AND rtm.user_id = ?
       LEFT JOIN team_members btm ON btm.team_id = ms.blue_team_id AND btm.user_id = ?
-      WHERE ms.id = ? AND ms.status = 'ACTIVE'
+      WHERE ms.id = ? AND ms.mode = 'TEAM' AND ms.status = 'ACTIVE'
         AND (rtm.user_id IS NOT NULL OR btm.user_id IS NOT NULL)
     `).get(user.id, user.id, sessionId)) as { id: string; side: 'RED' | 'BLUE' } | undefined;
 
@@ -56,6 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden: no active match for this account.' }, { status: 403 });
     }
 
+    if (!await hasRangeAccess(user.id)) return NextResponse.json({ success: false, error: 'All three team members must accept the rules of engagement.' }, { status: 403 });
     const lab = await launchLab({ sessionId: row.id, mode: 'TEAM', side: row.side, userId: user.id });
     return NextResponse.json({ success: true, lab });
   } catch (err: unknown) {

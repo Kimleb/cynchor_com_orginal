@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { demoTeamPath } from '@/lib/demo-team';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/common/Badge';
 import { RedTeamIcon, BlueTeamIcon, NetSecIcon, GrcIcon } from '@/components/illustrations/RoleIcons';
@@ -44,9 +45,8 @@ export default function ProfileMakingPage() {
         return;
       }
 
-      // ASSUMPTION (diagram gap): Profile Making has no outgoing arrow in the DFD.
-      // On saving the profile, route the user to the Dashboard.
-      router.push(data.redirectTo || '/demo/dashboard');
+      const invite = new URLSearchParams(window.location.search).get('invite');
+      router.push(invite ? demoTeamPath(invite) : data.redirectTo || '/demo/dashboard');
       router.refresh();
     } catch {
       setError('Network communication error. Try again.');
@@ -160,7 +160,7 @@ export default function ProfileMakingPage() {
                 </div>
                 <div className="font-heading font-bold text-sm text-text">Network Security</div>
                 <p className="text-xs text-muted mt-1 leading-snug">
-                  Infrastructure topology, firewall zoning, and ACL policy audits (Solo track).
+                  Infrastructure topology, firewall zoning, and ACL policy audits.
                 </p>
               </button>
 

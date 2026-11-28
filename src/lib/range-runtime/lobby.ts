@@ -1,6 +1,7 @@
 // Database-only range lobby logic: queue/pairing, per-match access checks, tagged events and match end.
 // No Docker imports, so tests can exercise it without a container.
 import crypto from 'crypto';
+import { RULES_VERSION, TEAM_SIZE } from '@/lib/demo-team';
 import { openLocalDatabase as getDb, endLocalMatch as endMatch, endStaleLocalMatches as endStaleMatches, recordLocalAuditLog as recordAuditLog, getRangeMatch, type RangeMatchRow } from '@/lib/db';
 export type Side = 'RED' | 'BLUE';
 export type EventScope = Side | 'ALL';
@@ -46,9 +47,13 @@ export function joinRangeQueue(userId: string, teamId: string, min = minTeamSize
     const opp = db.prepare(`
       SELECT q.team_id AS team_id FROM matchmaking_queue q JOIN teams t ON t.id = q.team_id
       WHERE q.side = ? AND q.status = 'WAITING' AND q.team_id <> ?
-        AND (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.id) >= ?
+        AND (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.id) BETWEEN ? AND ?
+        AND NOT EXISTS (
+          SELECT 1 FROM team_members tm LEFT JOIN disclaimers d ON d.id = ? || tm.id AND d.version = ?
+          WHERE tm.team_id = t.id AND d.id IS NULL
+        )
       ORDER BY q.joined_at ASC LIMIT 1
-    `).get(opposing, teamId, min) as { team_id: string } | undefined;
+    `).get(opposing, teamId, min, TEAM_SIZE, RULES_VERSION, RULES_VERSION) as { team_id: string } | undefined;
     if (opp !== undefined) {
       const sessionId = `match_${crypto.randomUUID()}`;
       const redTeamId = team.side === 'RED' ? team.id : opp.team_id;

@@ -100,7 +100,7 @@ export function LobbyMatchmakingIllustration({
                 Searching Queue
               </text>
               <text x="455" y="140" fill="#A1A1AA" fontSize="8" textAnchor="middle" fontFamily="monospace">
-                Quorum: 3+ Operatives
+                Team size: 3 players
               </text>
             </>
           )}

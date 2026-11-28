@@ -86,7 +86,7 @@ export function StatRow() {
   return (
     <div className="pt-4 border-t border-border/80 grid grid-cols-3 gap-3 sm:gap-6">
       <StatItem endValue={2} label="Combat disciplines (Red & Blue)" />
-      <StatItem endValue={3} suffix="+" label="Players per squad quorum" />
+      <StatItem endValue={3} label="Players per team" />
       <StatItem endValue={100} suffix="%" label="Synthetic isolated data" />
     </div>
   );

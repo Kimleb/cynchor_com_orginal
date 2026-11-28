@@ -1,6 +1,6 @@
+import { requireRangeTeam } from '@/lib/team-rules';
 import React from 'react';
 import Link from 'next/link';
-import crypto from 'crypto';
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db';
 import { requireUser } from '@/lib/guards';
@@ -25,28 +25,23 @@ interface ArchitecturePageProps {
 
 export default async function ArchitecturePage({ searchParams }: ArchitecturePageProps) {
   const user = await requireUser({ profile: true });
-  let mode: 'TEAM' | 'SOLO' = 'SOLO';
-  let side: 'RED' | 'BLUE' | 'SOLO' = 'SOLO';
-  let sessionId = `ses_${crypto.randomUUID()}`;
-
+  await requireRangeTeam(user.id);
   const query = await searchParams;
-  if (query.mode === 'team') {
-    // Team sessions come from the database: the caller must belong to a team in an ACTIVE match.
-    const row = (await getDb().prepare(`
-      SELECT ms.id AS id,
-             CASE WHEN rtm.user_id IS NOT NULL THEN 'RED' ELSE 'BLUE' END AS side
-      FROM match_sessions ms
-      LEFT JOIN team_members rtm ON rtm.team_id = ms.red_team_id AND rtm.user_id = ?
-      LEFT JOIN team_members btm ON btm.team_id = ms.blue_team_id AND btm.user_id = ?
-      WHERE ms.status = 'ACTIVE' AND (rtm.user_id IS NOT NULL OR btm.user_id IS NOT NULL)
-      ORDER BY (ms.id = ?) DESC, ms.created_at DESC
-      LIMIT 1
-    `).get(user.id, user.id, String(query.sessionId ?? ''))) as { id: string; side: 'RED' | 'BLUE' } | undefined;
-    if (row === undefined) redirect('/demo/team');
-    mode = 'TEAM';
-    side = row.side;
-    sessionId = row.id;
-  }
+  if (query.mode !== 'team' || typeof query.sessionId !== 'string') redirect('/demo/team');
+  // Team sessions come from the database: the caller must belong to a team in an ACTIVE match.
+  const row = (await getDb().prepare(`
+    SELECT ms.id AS id,
+           CASE WHEN rtm.user_id IS NOT NULL THEN 'RED' ELSE 'BLUE' END AS side
+    FROM match_sessions ms
+    LEFT JOIN team_members rtm ON rtm.team_id = ms.red_team_id AND rtm.user_id = ?
+    LEFT JOIN team_members btm ON btm.team_id = ms.blue_team_id AND btm.user_id = ?
+    WHERE ms.id = ? AND ms.mode = 'TEAM' AND ms.status = 'ACTIVE'
+      AND (rtm.user_id IS NOT NULL OR btm.user_id IS NOT NULL)
+    LIMIT 1
+  `).get(user.id, user.id, query.sessionId)) as { id: string; side: 'RED' | 'BLUE' } | undefined;
+  if (!row) redirect('/demo/team');
+  const { id: sessionId, side } = row;
+  const mode = 'TEAM';
 
   // Invoke Cynchor lab adapter
   const labResult = await launchLab({
@@ -79,9 +74,9 @@ export default async function ArchitecturePage({ searchParams }: ArchitecturePag
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted">Session:</span>
             <span className="font-mono text-xs font-bold text-text bg-surface-2 px-3 py-1.5 rounded-xl border border-border">
-              {mode} {mode === 'TEAM' && `(${side} SQUAD)`}
+              Team ({side} squad)
             </span>
-            {mode === 'TEAM' && <EndMatchButton sessionId={sessionId} />}
+            <EndMatchButton sessionId={sessionId} />
             <Link
               href="/demo/dashboard"
               className="text-xs font-heading font-medium text-muted hover:text-text px-3 py-1.5 rounded-xl border border-border bg-surface-2 transition-colors"

@@ -1,8 +1,11 @@
+import { hasRangeAccess } from '@/lib/team-rules';
+import { teamReady } from '@/lib/team-rules';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser, checkRateLimit } from '@/lib/session';
 import { recordLocalAuditLog as recordAuditLog, openLocalDatabase as getDb } from '@/lib/db';
 import { startMatch, stopMatch } from '@/lib/range-runtime/orchestrator';
 import { joinRangeQueue, endRangeSession, getMatchAccess, recordRangeEvent } from '@/lib/range-runtime/lobby';
+import { TEAM_SIZE } from '@/lib/demo-team';
 import { ensureScorerRunning } from '@/lib/range-runtime/scorer';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,6 +15,7 @@ export async function POST(req: NextRequest) {
     if (user === null) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    if (!await hasRangeAccess(user.id)) return NextResponse.json({ success: false, error: 'Complete team formation and accept the rules of engagement.' }, { status: 403 });
     if (Number(user.is_profile_completed) !== 1) {
       return NextResponse.json({ success: false, error: 'Complete your profile first.' }, { status: 403 });
     }
@@ -24,7 +28,14 @@ export async function POST(req: NextRequest) {
     if (teamId === '') {
       return NextResponse.json({ success: false, error: 'Missing team ID' }, { status: 400 });
     }
-    const result = joinRangeQueue(user.id, teamId);
+    const membership = getDb().prepare('SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?').get(teamId, user.id);
+    if (!membership) return NextResponse.json({ success: false, error: 'Join the team first.' }, { status: 403 });
+    const roster = getDb().prepare('SELECT COUNT(*) AS size FROM team_members WHERE team_id = ?').get(teamId);
+    if (Number(roster?.size) !== TEAM_SIZE) {
+      return NextResponse.json({ success: false, error: 'The range queue requires a team of exactly three players.' }, { status: 400 });
+    }
+    if (!await teamReady(teamId)) return NextResponse.json({ success: false, error: 'All three team members must accept the rules of engagement.' }, { status: 403 });
+    const result = joinRangeQueue(user.id, teamId, TEAM_SIZE);
     switch (result.kind) {
       case 'forbidden':
         return NextResponse.json({ success: false, error: 'Forbidden: you are not a member of this team.' }, { status: 403 });
@@ -73,6 +84,7 @@ export async function GET() {
     if (user === null) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    if (!await hasRangeAccess(user.id)) return NextResponse.json({ success: false, error: 'Complete team formation and accept the rules of engagement.' }, { status: 403 });
     const db = getDb();
     const myTeam = db.prepare(`
       SELECT t.id AS id, t.name AS name, t.side AS side, t.status AS status,

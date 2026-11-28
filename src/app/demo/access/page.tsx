@@ -17,7 +17,7 @@ export default async function ProductAccess() {
       <section className="self-start md:pt-8">
         <h1 className="font-heading text-4xl font-bold tracking-tight">Inside the Cynchor range</h1>
         <p className="mt-5 leading-relaxed text-muted">
-          Cynchor is a hands-on cybersecurity training environment. Work solo or with a squad,
+          Cynchor is a hands-on cybersecurity training environment. Work with a squad,
           practice attack and defense in simulated scenarios, and review your team’s results.
         </p>
         <p className="mt-4 leading-relaxed text-muted">

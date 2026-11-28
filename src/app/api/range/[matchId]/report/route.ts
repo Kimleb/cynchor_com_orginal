@@ -1,3 +1,4 @@
+import { hasRangeAccess } from '@/lib/team-rules';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
 import { buildReport } from '@/lib/range-runtime/reports';
@@ -11,6 +12,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ mat
     if (user === null) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    if (!await hasRangeAccess(user.id)) return NextResponse.json({ success: false, error: 'Complete team formation and accept the rules of engagement.' }, { status: 403 });
     const report = buildReport(matchId);
     if (report === null) {
       return NextResponse.json({ success: false, error: 'No ended range match with this ID.' }, { status: 404 });
