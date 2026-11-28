@@ -22,6 +22,13 @@ test('two ready teams share a round, score once, unlock levels and finish expire
       await db.prepare('INSERT INTO disclaimers (id,user_identifier,accepted_at,version) VALUES (?,?,?,?)').run(RULES_VERSION+id,id,now,RULES_VERSION);
     }
   }
+  const search = await incidentGame(ids[0],'queue');
+  assert.equal(search.phase,'waiting');
+  assert.equal((await incidentGame(ids[1],'queue')).deadline, search.deadline);
+  await db.prepare("UPDATE matchmaking_queue SET joined_at=? WHERE status='INCIDENT_SEARCH'").run(new Date(Date.now()-120001).toISOString());
+  assert.equal((await incidentGame(ids[3],'queue')).phase,'waiting');
+  assert.equal((await incidentGame(ids[1],'status')).phase,'expired');
+  assert.equal((await incidentGame(ids[3],'cancel')).phase,'idle');
   assert.equal((await incidentGame(ids[0],'queue')).phase,'waiting');
   const match = await incidentGame(ids[3],'queue');
   assert.equal(match.phase,'playing');

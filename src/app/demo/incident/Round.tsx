@@ -1,7 +1,24 @@
 'use client';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { TimerOff } from 'lucide-react';
 import Link from 'next/link';
 import type { IncidentView } from '@/lib/incident-game';
+function SearchDial({deadline}: {deadline?: string}) {
+  const [now,setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!deadline) return;
+    const tick = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(tick);
+  }, [deadline]);
+  const seconds = Math.min(120, Math.max(0, Math.ceil((Date.parse(deadline ?? '') - now) / 1000)));
+  return <div className="relative mx-auto grid h-36 w-36 place-items-center rounded-full border border-teal/20 bg-teal/5">
+    {deadline ? <>
+      <div aria-hidden="true" className="absolute inset-2 rounded-full" style={{background:`conic-gradient(#16b4b2 ${seconds * 3}deg, transparent 0)`, maskImage:'radial-gradient(circle, transparent 65%, black 66%)'}} />
+      <div aria-hidden="true" className="absolute inset-5 rounded-full border border-dashed border-teal/40 motion-safe:animate-[spin_16s_linear_infinite]" />
+      <span role="timer" aria-label="Search time remaining" className="font-mono text-3xl tabular-nums text-teal">{Math.floor(seconds/60)}:{String(seconds%60).padStart(2,'0')}</span>
+    </> : <TimerOff aria-hidden="true" className="h-10 w-10 text-muted" />}
+  </div>;
+}
 export default function Round() {
   const [game,setGame] = useState<IncidentView>(), [error,setError] = useState(''), [busy,setBusy] = useState(false);
   const sequence = useRef(0);
@@ -34,7 +51,14 @@ export default function Round() {
       {error && <p role="alert">{error}</p>}
       {!game && !error && <p>Loading round…</p>}
       {game?.phase === 'idle' && <><p>Both teams have two minutes to respond to the same incident. Each correct response earns 100 points for your team and unlocks your next level.</p><button className={button} disabled={busy} onClick={()=>act('queue')}>Find opposing team</button></>}
-      {game?.phase === 'waiting' && <><p>Waiting for a three-player team on the opposite side.</p><button className={button} disabled={busy} onClick={()=>act('cancel')}>Cancel search</button></>}
+      {(game?.phase === 'waiting' || game?.phase === 'expired') && <div className="space-y-4 py-3 text-center">
+        <SearchDial deadline={game.phase === 'waiting' ? game.deadline : undefined} />
+        <div role="status">
+          <h2 className="font-heading text-xl font-semibold">{game.phase === 'waiting' ? 'Searching for an opponent' : 'Search timed out'}</h2>
+          <p className="mt-1 text-sm text-muted">{game.phase === 'waiting' ? 'Looking for a ready three-player team on the opposite side.' : 'No opposing team was found in two minutes.'}</p>
+        </div>
+        {game.phase === 'expired' ? <button className={button} disabled={busy} onClick={()=>act('queue')}>Search again</button> : <button className={button} disabled={busy} onClick={()=>act('cancel')}>Cancel search</button>}
+      </div>}
       {(game?.phase === 'playing' || game?.phase === 'finished') && <>
         <h2 className="text-xl font-semibold">Level {game.level} · {game.title}</h2><p>{game.prompt}</p>
         {game.phase === 'playing' ? <>
