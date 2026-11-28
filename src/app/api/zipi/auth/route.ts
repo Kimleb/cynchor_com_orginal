@@ -41,15 +41,21 @@ async function signIn(details: z.infer<typeof input>) {
     const { email, code } = details;
     const operator = await verifyAuthenticator(email, code);
     if (!operator) return failure();
-    const key = process.env.RESEND_API_KEY;
-    const from = process.env.ZIPI_EMAIL_FROM || process.env.ACCESS_REQUEST_FROM;
-    if (!key || !from) return unavailable();
+    const key = process.env.RESEND_API_KEY?.trim();
+    const from = process.env.ZIPI_EMAIL_FROM?.trim() || process.env.ACCESS_REQUEST_FROM?.trim();
+    if (!key || !from) {
+      console.error('Zipi verification email configuration missing', {
+        code: !key ? 'ZIPI_RESEND_KEY_MISSING' : 'ZIPI_SENDER_MISSING',
+      });
+      return unavailable();
+    }
     const challenge = crypto.randomBytes(32).toString('base64url');
     const emailCode = crypto.randomInt(1000000).toString().padStart(6, '0');
     const digest = hashToken(challenge);
     await db.prepare(`INSERT INTO zipi_challenges (token_hash, operator_id, code_hash, expires)
       VALUES (?, ?, ?, ?) ON CONFLICT (operator_id) DO UPDATE SET
       token_hash = excluded.token_hash, code_hash = excluded.code_hash, expires = excluded.expires, attempts = 0`).run(digest, operator, codeHash(challenge, emailCode), Date.now() + 600000);
+    let providerStatus: number | undefined;
     try {
       const delivery = await fetch('https://api.resend.com/emails', {
         method: 'POST', signal: AbortSignal.timeout(10000),
@@ -57,8 +63,13 @@ async function signIn(details: z.infer<typeof input>) {
         body: JSON.stringify({ from, to: [email], subject: 'Cynchor operator sign-in',
           text: `Your verification code is ${emailCode}. It expires in 10 minutes. Enter it only on the Cynchor console.` }),
       });
-      if (!delivery.ok || !(await delivery.json()).id) throw new Error('Mail unavailable');
-    } catch {
+      providerStatus = delivery.status;
+      if (!delivery.ok || !(await delivery.json())?.id) throw new Error('Mail unavailable');
+    } catch (error) {
+      const code = providerStatus === undefined
+        ? (error instanceof Error && error.name === 'TimeoutError' ? 'ZIPI_EMAIL_TIMEOUT' : 'ZIPI_EMAIL_NETWORK_ERROR')
+        : (providerStatus >= 400 ? 'ZIPI_EMAIL_PROVIDER_REJECTED' : 'ZIPI_EMAIL_INVALID_RESPONSE');
+      console.error('Zipi verification email unavailable', { code, providerStatus });
       await db.prepare('DELETE FROM zipi_challenges WHERE token_hash = ?').run(digest);
       return unavailable();
     }

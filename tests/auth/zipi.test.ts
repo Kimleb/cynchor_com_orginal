@@ -50,9 +50,14 @@ test('console requires both one-time factors from the same enrollment and browse
 test('mail delivery failure removes the pending challenge and issues no session', async t => {
   const email = 'delivery@cynchor.com';
   const secret = await enroll(email);
-  t.mock.method(globalThis, 'fetch', async () => new Response(null, { status: 503 }));
+  const log = t.mock.method(console, 'error', () => {});
+  t.mock.method(globalThis, 'fetch', async () => new Response('private provider details', { status: 403 }));
   const result = await request(POST, { step: 'start', email, code: new TOTP({ secret }).generate() });
   assert.equal(result.response.status, 503);
+  assert.deepEqual(log.mock.calls[0]?.arguments[1], {
+    code: 'ZIPI_EMAIL_PROVIDER_REJECTED', providerStatus: 403,
+  });
+  assert.equal((await result.response.json()).error, 'Verification email is unavailable. Try again later.');
   assert.equal((await getDb().prepare('SELECT count(*) AS n FROM zipi_challenges').get())?.n, 0);
 });
 
