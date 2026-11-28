@@ -36,8 +36,15 @@ test('two ready teams share a round, score once, unlock levels and finish expire
   assert.equal((await incidentGame(ids[0],'queue')).phase,'waiting');
   const match = await incidentGame(ids[3],'queue');
   assert.equal(match.phase,'playing');
-  for (const id of ids) await incidentGame(id,'answer',match.id,1);
-  const result = await incidentGame(ids[0],'answer',match.id,0);
+  assert.equal(match.drill?.roster.length, 6);
+  for (const id of ids) {
+    for (const record of match.drill!.records.filter(r => r.evidence.includes('K-17'))) {
+      await incidentGame(id,'apply',match.id,record.id);
+    }
+    assert.equal((await incidentGame(id,'status')).drill?.records.filter(r=>r.held).length,2);
+    await incidentGame(id,'submit',match.id);
+  }
+  const result = await incidentGame(ids[0],'submit',match.id);
   assert.equal(result.red,300);
   assert.equal(result.blue,300);
   assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM range_scores WHERE session_id=?').get(match.id!))?.n,6);
@@ -46,5 +53,5 @@ test('two ready teams share a round, score once, unlock levels and finish expire
   const next = await incidentGame(ids[0],'queue');
   assert.equal(next.level,2);
   await db.prepare('UPDATE match_sessions SET expires_at=? WHERE id=?').run(now,next.id!);
-  assert.equal((await incidentGame(ids[0],'answer',next.id,0)).red,0);
+  assert.equal((await incidentGame(ids[0],'submit',next.id)).red,0);
 });
