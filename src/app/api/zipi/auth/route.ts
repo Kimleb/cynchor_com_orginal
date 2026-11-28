@@ -24,10 +24,21 @@ export async function POST(req: NextRequest) {
   if (!limit.allowed) return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 });
   const data = input.safeParse(await req.json().catch(() => null));
   if (!data.success) return failure();
+  const step = data.data;
+  try {
+    return await signIn(step);
+  } catch (error) {
+    const code = error instanceof Error && 'code' in error ? error.code : 'ZIPI_UNEXPECTED';
+    console.error('Zipi operator sign-in unavailable', { step: step.step, code });
+    return NextResponse.json({ error: 'Operator sign-in is temporarily unavailable.' }, { status: 503 });
+  }
+}
+
+async function signIn(details: z.infer<typeof input>) {
   const db = getDb();
   const jar = await cookies();
-  if (data.data.step === 'start') {
-    const { email, code } = data.data;
+  if (details.step === 'start') {
+    const { email, code } = details;
     const operator = await verifyAuthenticator(email, code);
     if (!operator) return failure();
     const key = process.env.RESEND_API_KEY;
@@ -61,7 +72,7 @@ export async function POST(req: NextRequest) {
   const verified = await db.transaction(async () => {
     const row = await db.prepare(`UPDATE zipi_challenges SET attempts = attempts + 1
       WHERE token_hash = ? AND attempts < 5 AND expires > ? RETURNING code_hash, operator_id`).get(digest, Date.now());
-    if (!row || !crypto.timingSafeEqual(Buffer.from(String(row.code_hash)), Buffer.from(codeHash(challenge, data.data.code)))) {
+    if (!row || !crypto.timingSafeEqual(Buffer.from(String(row.code_hash)), Buffer.from(codeHash(challenge, details.code)))) {
       return false;
     }
     await db.prepare('DELETE FROM zipi_challenges WHERE token_hash = ?').run(digest);

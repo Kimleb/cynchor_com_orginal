@@ -18,8 +18,8 @@ export default function SignIn() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(step === 'start' ? { step, email, code } : { step, code }),
       });
-      const data = await response.json();
-      if (!response.ok) setError(data.error || 'Unable to sign in.');
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) setError(data?.error || 'Unable to sign in. Try again later.');
       else if (step === 'verify') window.location.replace('/zipi');
       else {
         setStep('verify');

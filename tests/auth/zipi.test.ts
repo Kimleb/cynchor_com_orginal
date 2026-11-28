@@ -66,3 +66,24 @@ test('a valid legacy operator password session grants no console access', async 
   const cookie = player.cookie.name + '=' + player.cookie.value;
   assert.equal((await request(consoleData, undefined, cookie)).response.status, 403);
 });
+
+test('an enrollment encrypted with a different secret fails without opening a session', async t => {
+  const email = 'secret-mismatch@cynchor.com';
+  const secret = await enroll(email);
+  const original = process.env.SESSION_SECRET;
+  const log = t.mock.method(console, 'error', () => {});
+  process.env.SESSION_SECRET = 'different-test-secret-at-least-32-characters';
+  try {
+    const { response, cookie } = await request(POST, {
+      step: 'start', email, code: new TOTP({ secret }).generate(),
+    }, '', '192.0.2.80', 'cynchor_zipi_challenge');
+    assert.equal(response.status, 503);
+    assert.equal(cookie, undefined);
+    assert.deepEqual(log.mock.calls[0]?.arguments[1], {
+      step: 'start', code: 'ZIPI_ENROLLMENT_DECRYPT_FAILED',
+    });
+  } finally {
+    if (original === undefined) delete process.env.SESSION_SECRET;
+    else process.env.SESSION_SECRET = original;
+  }
+});

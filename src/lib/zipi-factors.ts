@@ -8,7 +8,7 @@ const parameters = { issuer: 'Cynchor', algorithm: 'SHA1', digits: 6, period: 30
 
 function key() {
   const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32) throw new Error('A stable SESSION_SECRET is required');
+  if (!secret || secret.length < 32) throw Object.assign(new Error('A stable SESSION_SECRET is required'), { code: 'ZIPI_SESSION_SECRET_MISSING' });
   return crypto.createHmac('sha256', secret).update('zipi authenticator encryption v1').digest();
 }
 
@@ -33,11 +33,17 @@ export async function verifyAuthenticator(email: string, code: string) {
     WHERE email = ? AND (attempts < 5 OR window_end <= ?) RETURNING id, secret`)
     .get(now, now, now + 300000, email, now);
   if (!row) return null;
+  const encryptionKey = key();
   const [iv, ciphertext, tag] = String(row.secret).split('.').map(part => Buffer.from(part, 'base64'));
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key(), iv);
-  decipher.setAAD(Buffer.from(email));
-  decipher.setAuthTag(tag);
-  const secret = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString();
+  let secret: string;
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', encryptionKey, iv);
+    decipher.setAAD(Buffer.from(email));
+    decipher.setAuthTag(tag);
+    secret = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString();
+  } catch {
+    throw Object.assign(new Error('Could not decrypt the operator enrollment.'), { code: 'ZIPI_ENROLLMENT_DECRYPT_FAILED' });
+  }
   const delta = new TOTP({ ...parameters, secret }).validate({ token: code, timestamp: now, window: 1 });
   if (delta === null) return null;
   const counter = Math.floor(now / 30000) + delta;
