@@ -28,9 +28,18 @@ export function createPostgresPool() {
   }
   const supabaseHost = url.hostname.endsWith('.pooler.supabase.com')
     || /^db\.[a-z0-9]+\.supabase\.co$/.test(url.hostname);
-  const ca = process.env.DATABASE_CA_CERT?.trim().replaceAll('\\n', '\n')
-    || (process.env.DATABASE_CA_FILE && readFileSync(process.env.DATABASE_CA_FILE, 'utf8'))
-    || (supabaseHost ? supabaseRootCa : undefined);
+  let ca = process.env.DATABASE_CA_CERT?.trim().replaceAll('\\n', '\n');
+  const caFile = process.env.DATABASE_CA_FILE?.trim();
+  if (!ca && caFile) {
+    try {
+      ca = readFileSync(caFile, 'utf8');
+    } catch (error) {
+      // A local Supabase certificate path may have been copied into Vercel.
+      if (!(supabaseHost && process.env.VERCEL === '1'
+        && (error as NodeJS.ErrnoException).code === 'ENOENT')) throw error;
+    }
+  }
+  if (!ca && supabaseHost) ca = supabaseRootCa;
   if (!ca) throw Object.assign(new Error('Postgres CA is missing.'), { code: 'DB_CA_MISSING' });
   // Use explicit connection fields so URL SSL options cannot replace the trusted CA.
   const schema = postgresSchema();
